@@ -1,0 +1,93 @@
+name: ai-control-layer
+services:
+  gateway:
+    build: .
+    environment:
+      AICL_DEMO_MODE: "true"
+      AICL_OPA_URL: http://opa:8181
+      AICL_LLM_URL: http://mock-llm:8081
+      AICL_MCP_URL: http://mock-mcp:8082
+      AICL_REDIS_URL: redis://redis:6379/0
+      AICL_DATABASE_URL: postgresql://aicl:${POSTGRES_PASSWORD:-local-demo-password}@postgres:5432/aicl
+      AICL_ADMIN_TOKEN: ${AICL_ADMIN_TOKEN:-demo-admin-token}
+      AICL_SEMANTIC_PROVIDER: ${AICL_SEMANTIC_PROVIDER:-none}
+      AICL_OLLAMA_URL: http://ollama:11434
+      AICL_OLLAMA_MODEL: ${AICL_OLLAMA_MODEL:-qwen3:4b}
+      AICL_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: ["./config:/srv/aicl/config:ro"]
+    depends_on:
+      redis: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+      opa: {condition: service_started}
+      mock-llm: {condition: service_started}
+      mock-mcp: {condition: service_started}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+  opa:
+    image: openpolicyagent/opa:1.4.2
+    command: ["run", "--server", "--addr=0.0.0.0:8181", "--log-level=error", "--disable-telemetry", "/policies"]
+    volumes: ["./opa:/policies:ro"]
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: aicl
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-demo-password}
+      POSTGRES_DB: aicl
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aicl -d aicl"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  mock-llm:
+    build: .
+    command: ["uvicorn", "demo.mock_llm:app", "--host", "0.0.0.0", "--port", "8081", "--no-access-log"]
+  mock-mcp:
+    build: .
+    command: ["uvicorn", "demo.mock_mcp:app", "--host", "0.0.0.0", "--port", "8082", "--no-access-log"]
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    volumes: ["./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["127.0.0.1:9090:9090"]
+  grafana:
+    image: grafana/grafana:11.6.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-local-demo-password}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports: ["127.0.0.1:3000:3000"]
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on: [prometheus, tempo]
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes: ["./observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro"]
+    depends_on: [tempo]
+  tempo:
+    image: grafana/tempo:2.7.2
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes: ["./observability/tempo.yaml:/etc/tempo.yaml:ro"]
+  ollama:
+    image: ollama/ollama:0.6.8
+    profiles: [semantic]
+    volumes: ["ollama-models:/root/.ollama"]
+volumes:
+  redis-data:
+  postgres-data:
+  ollama-models:

@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 5s
+scrape_configs:
+  - job_name: ai-control-layer
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials: demo-admin-token
+    static_configs:
+      - targets: ['gateway:8000']

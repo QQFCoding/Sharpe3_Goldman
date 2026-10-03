@@ -1,0 +1,1 @@
+"""Protocol-independent security domain."""

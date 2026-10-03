@@ -1,0 +1,584 @@
+{
+  "$defs": {
+    "AuditPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "store_raw_prompts": {
+          "const": false,
+          "default": false,
+          "title": "Store Raw Prompts",
+          "type": "boolean"
+        }
+      },
+      "title": "AuditPolicy",
+      "type": "object"
+    },
+    "Budgets": {
+      "additionalProperties": false,
+      "properties": {
+        "per_agent": {
+          "$ref": "#/$defs/Limits"
+        },
+        "per_user": {
+          "$ref": "#/$defs/UserLimits"
+        }
+      },
+      "title": "Budgets",
+      "type": "object"
+    },
+    "Controls": {
+      "additionalProperties": false,
+      "properties": {
+        "pii": {
+          "$ref": "#/$defs/ScanControl"
+        },
+        "secrets": {
+          "$ref": "#/$defs/ScanControl"
+        },
+        "prompt_injection": {
+          "$ref": "#/$defs/InjectionConfig"
+        }
+      },
+      "title": "Controls",
+      "type": "object"
+    },
+    "Defaults": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "const": "deny",
+          "default": "deny",
+          "title": "Decision",
+          "type": "string"
+        },
+        "unknown_tool": {
+          "const": "deny",
+          "default": "deny",
+          "title": "Unknown Tool",
+          "type": "string"
+        },
+        "unknown_model": {
+          "const": "deny",
+          "default": "deny",
+          "title": "Unknown Model",
+          "type": "string"
+        },
+        "semantic_failure": {
+          "default": "block_high_risk",
+          "enum": [
+            "block_high_risk",
+            "block_all",
+            "warn"
+          ],
+          "title": "Semantic Failure",
+          "type": "string"
+        }
+      },
+      "title": "Defaults",
+      "type": "object"
+    },
+    "InjectionConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "deterministic_enabled": {
+          "default": true,
+          "title": "Deterministic Enabled",
+          "type": "boolean"
+        },
+        "semantic": {
+          "$ref": "#/$defs/SemanticConfig"
+        }
+      },
+      "title": "InjectionConfig",
+      "type": "object"
+    },
+    "Limits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_steps": {
+          "default": 25,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Max Steps",
+          "type": "integer"
+        },
+        "max_llm_calls": {
+          "default": 20,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Max Llm Calls",
+          "type": "integer"
+        },
+        "max_tool_calls": {
+          "default": 20,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Max Tool Calls",
+          "type": "integer"
+        },
+        "max_depth": {
+          "default": 8,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Max Depth",
+          "type": "integer"
+        },
+        "max_wall_time_seconds": {
+          "default": 120,
+          "maximum": 86400,
+          "minimum": 1,
+          "title": "Max Wall Time Seconds",
+          "type": "integer"
+        },
+        "token_limit": {
+          "default": 100000,
+          "minimum": 1,
+          "title": "Token Limit",
+          "type": "integer"
+        },
+        "credit_limit": {
+          "default": 100,
+          "exclusiveMinimum": 0,
+          "title": "Credit Limit",
+          "type": "number"
+        },
+        "concurrent_requests": {
+          "default": 4,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Concurrent Requests",
+          "type": "integer"
+        },
+        "reservation_ttl_seconds": {
+          "default": 60,
+          "maximum": 600,
+          "minimum": 1,
+          "title": "Reservation Ttl Seconds",
+          "type": "integer"
+        }
+      },
+      "title": "Limits",
+      "type": "object"
+    },
+    "MemoryPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "enforce_tenant_boundary": {
+          "const": true,
+          "default": true,
+          "title": "Enforce Tenant Boundary",
+          "type": "boolean"
+        },
+        "scan_before_write": {
+          "default": true,
+          "title": "Scan Before Write",
+          "type": "boolean"
+        },
+        "scan_after_read": {
+          "default": true,
+          "title": "Scan After Read",
+          "type": "boolean"
+        },
+        "quarantine_injection": {
+          "default": true,
+          "title": "Quarantine Injection",
+          "type": "boolean"
+        },
+        "max_ttl_seconds": {
+          "default": 86400,
+          "maximum": 31536000,
+          "minimum": 1,
+          "title": "Max Ttl Seconds",
+          "type": "integer"
+        }
+      },
+      "title": "MemoryPolicy",
+      "type": "object"
+    },
+    "Metadata": {
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision"
+      ],
+      "title": "Metadata",
+      "type": "object"
+    },
+    "ModelCost": {
+      "additionalProperties": false,
+      "properties": {
+        "per_1000_input_tokens": {
+          "default": 1,
+          "minimum": 0,
+          "title": "Per 1000 Input Tokens",
+          "type": "number"
+        },
+        "per_1000_output_tokens": {
+          "default": 2,
+          "minimum": 0,
+          "title": "Per 1000 Output Tokens",
+          "type": "number"
+        }
+      },
+      "title": "ModelCost",
+      "type": "object"
+    },
+    "ModelEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "model"
+      ],
+      "title": "ModelEntry",
+      "type": "object"
+    },
+    "Models": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "items": {
+            "$ref": "#/$defs/ModelEntry"
+          },
+          "title": "Allowed",
+          "type": "array"
+        }
+      },
+      "required": [
+        "allowed"
+      ],
+      "title": "Models",
+      "type": "object"
+    },
+    "NamedResources": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed",
+          "type": "array"
+        }
+      },
+      "title": "NamedResources",
+      "type": "object"
+    },
+    "NetworkPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "block_loopback": {
+          "default": true,
+          "title": "Block Loopback",
+          "type": "boolean"
+        },
+        "block_private_ips": {
+          "default": true,
+          "title": "Block Private Ips",
+          "type": "boolean"
+        },
+        "block_link_local": {
+          "default": true,
+          "title": "Block Link Local",
+          "type": "boolean"
+        },
+        "block_reserved": {
+          "default": true,
+          "title": "Block Reserved",
+          "type": "boolean"
+        },
+        "validate_redirects": {
+          "const": true,
+          "default": true,
+          "title": "Validate Redirects",
+          "type": "boolean"
+        },
+        "resolve_dns": {
+          "default": true,
+          "title": "Resolve Dns",
+          "type": "boolean"
+        }
+      },
+      "title": "NetworkPolicy",
+      "type": "object"
+    },
+    "ResourceCosts": {
+      "additionalProperties": false,
+      "properties": {
+        "models": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ModelCost"
+          },
+          "title": "Models",
+          "type": "object"
+        },
+        "tools": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "title": "Tools",
+          "type": "object"
+        },
+        "default_tool": {
+          "default": 1,
+          "minimum": 0,
+          "title": "Default Tool",
+          "type": "number"
+        }
+      },
+      "title": "ResourceCosts",
+      "type": "object"
+    },
+    "ScanControl": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "input_action": {
+          "enum": [
+            "ALLOW",
+            "REDACT",
+            "BLOCK"
+          ],
+          "title": "Input Action",
+          "type": "string"
+        },
+        "output_action": {
+          "enum": [
+            "ALLOW",
+            "REDACT",
+            "BLOCK"
+          ],
+          "title": "Output Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "input_action",
+        "output_action"
+      ],
+      "title": "ScanControl",
+      "type": "object"
+    },
+    "SemanticConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "always_scan": {
+          "default": false,
+          "title": "Always Scan",
+          "type": "boolean"
+        },
+        "review_threshold": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Review Threshold",
+          "type": "number"
+        },
+        "block_threshold": {
+          "default": 0.85,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Block Threshold",
+          "type": "number"
+        }
+      },
+      "title": "SemanticConfig",
+      "type": "object"
+    },
+    "SizeLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "request_bytes": {
+          "default": 65536,
+          "maximum": 262144,
+          "minimum": 1,
+          "title": "Request Bytes",
+          "type": "integer"
+        },
+        "response_bytes": {
+          "default": 65536,
+          "maximum": 1048576,
+          "minimum": 1,
+          "title": "Response Bytes",
+          "type": "integer"
+        },
+        "max_input_tokens": {
+          "default": 16000,
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Max Input Tokens",
+          "type": "integer"
+        },
+        "max_output_tokens": {
+          "default": 2048,
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        }
+      },
+      "title": "SizeLimits",
+      "type": "object"
+    },
+    "ThreatConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "source": {
+          "default": "threat-feed.yaml",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "title": "ThreatConfig",
+      "type": "object"
+    },
+    "Tools": {
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "const": "deny",
+          "type": "string",
+          "default": "deny",
+          "title": "Default"
+        },
+        "allow": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allow",
+          "type": "array"
+        },
+        "require_approval": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Require Approval",
+          "type": "array"
+        },
+        "deny": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Deny",
+          "type": "array"
+        }
+      },
+      "title": "Tools",
+      "type": "object"
+    },
+    "UserLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "requests_per_minute": {
+          "default": 60,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Requests Per Minute",
+          "type": "integer"
+        }
+      },
+      "title": "UserLimits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "const": "aicl/v1",
+      "default": "aicl/v1",
+      "title": "Apiversion",
+      "type": "string"
+    },
+    "metadata": {
+      "$ref": "#/$defs/Metadata"
+    },
+    "mode": {
+      "const": "enforce",
+      "default": "enforce",
+      "title": "Mode",
+      "type": "string"
+    },
+    "defaults": {
+      "$ref": "#/$defs/Defaults"
+    },
+    "models": {
+      "$ref": "#/$defs/Models"
+    },
+    "agents": {
+      "$ref": "#/$defs/NamedResources"
+    },
+    "apis": {
+      "$ref": "#/$defs/NamedResources"
+    },
+    "controls": {
+      "$ref": "#/$defs/Controls"
+    },
+    "tools": {
+      "$ref": "#/$defs/Tools"
+    },
+    "memory": {
+      "$ref": "#/$defs/MemoryPolicy"
+    },
+    "network": {
+      "$ref": "#/$defs/NetworkPolicy"
+    },
+    "budgets": {
+      "$ref": "#/$defs/Budgets"
+    },
+    "limits": {
+      "$ref": "#/$defs/SizeLimits"
+    },
+    "threat_intelligence": {
+      "$ref": "#/$defs/ThreatConfig"
+    },
+    "audit": {
+      "$ref": "#/$defs/AuditPolicy"
+    },
+    "resource_costs": {
+      "$ref": "#/$defs/ResourceCosts"
+    }
+  },
+  "required": [
+    "metadata",
+    "models",
+    "tools"
+  ],
+  "title": "Policy",
+  "type": "object"
+}

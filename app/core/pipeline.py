@@ -1,0 +1,514 @@
+import asyncio
+import hashlib
+import time
+
+from app.adapters.base import UpstreamResult
+from app.adapters.tools import TOOLS
+from app.audit.repository import AuditEvent
+from app.budget.manager import Reservation
+from app.budget.pricing import actual_credits, estimate
+from app.controls import pii, prompt_patterns, schema, secrets
+from app.controls.base import canonicalize, encoded, transform
+from app.controls.ssrf import NetworkGuard
+from app.core.auth import approval_digest
+from app.core.decision import PERMITTED, Decision, GatewayResult
+from app.core.transaction import (
+    Effect,
+    Finding,
+    Operation,
+    Resource,
+    SecurityContext,
+    SecurityTransaction,
+)
+from app.semantic.base import SemanticRisk
+
+
+class Pipeline:
+    def __init__(
+        self,
+        policies,
+        engine,
+        budgets,
+        approvals,
+        semantic,
+        memory,
+        audit,
+        metrics,
+        tracer,
+        adapters,
+        semantic_timeout=5,
+        upstream_timeout=15,
+    ):
+        self.policies, self.engine, self.budgets = policies, engine, budgets
+        self.approvals, self.semantic, self.memory = approvals, semantic, memory
+        self.audit, self.metrics, self.tracer = audit, metrics, tracer
+        self.adapters = adapters
+        self.mcp_output_trust = "untrusted"
+        self.semantic_timeout, self.upstream_timeout = semantic_timeout, upstream_timeout
+
+    def prepare(self, request, principal):
+        resource = request.resource.model_copy(deep=True) if request.resource else None
+        effect = Effect.READ
+        if request.operation == Operation.LLM_REQUEST and resource is None:
+            resource = Resource(name="demo", provider="mock", model="demo")
+        if request.operation in {Operation.TOOL_CALL, Operation.MCP_TOOL_CALL, Operation.API_CALL}:
+            tool = TOOLS.get(resource.name if resource else "")
+            effect = tool.effect if tool else Effect.READ
+            if resource:
+                resource.mcp_server = "mock"  # Endpoint and provenance are never caller-controlled.
+        if request.operation in {Operation.MEMORY_READ, Operation.MEMORY_WRITE}:
+            effect = Effect.WRITE if request.operation == Operation.MEMORY_WRITE else Effect.READ
+            resource = resource or Resource(
+                name="memory", tenant_id=principal.tenant_id, owner=principal.subject
+            )
+        context = SecurityContext(workflow=request.workflow.model_copy(deep=True))
+        if request.operation == Operation.MEMORY_WRITE:
+            context.source = request.payload.get("source", "external")
+            context.source_trust = (
+                "trusted"
+                if context.source == "application" and "memory:trusted_write" in principal.scopes
+                else "untrusted"
+            )
+        if request.operation == Operation.LLM_REQUEST and any(
+            message.get("role") == "tool"
+            for message in request.payload.get("messages", [])
+            if isinstance(message, dict)
+        ):
+            context.source, context.source_trust = "retrieved", "untrusted"
+        return SecurityTransaction(
+            principal=principal,
+            operation=request.operation,
+            resource=resource,
+            effect=effect,
+            context=context,
+            payload=request.payload.copy(),
+        )
+
+    async def controls(self, tx, snapshot, output=False):
+        policy = snapshot.policy
+        findings = snapshot.feed.match(tx)
+        if (
+            tx.operation == Operation.MEMORY_WRITE and not output and not policy.memory.scan_before_write
+        ) or (tx.operation == Operation.MEMORY_READ and output and not policy.memory.scan_after_read):
+            return findings
+        if policy.controls.secrets.enabled:
+            action = policy.controls.secrets.output_action if output else policy.controls.secrets.input_action
+            findings += secrets.inspect(tx, action)
+        if policy.controls.pii.enabled:
+            action = policy.controls.pii.output_action if output else policy.controls.pii.input_action
+            findings += pii.inspect(tx, action)
+        if (
+            policy.controls.prompt_injection.enabled
+            and policy.controls.prompt_injection.deterministic_enabled
+        ):
+            findings += prompt_patterns.inspect(tx)
+        findings += await NetworkGuard(policy.network).inspect(tx)
+
+        # JSON keys are not redacted because changing them could bypass a strict protocol schema.
+        # Sensitive keys are rejected, including on arbitrary upstream objects.
+        def key_findings(value):
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    key_tx = tx.model_copy(update={"payload": str(key)})
+                    if secrets.inspect(key_tx, "BLOCK") or pii.inspect(key_tx, "BLOCK"):
+                        findings.append(Finding(code="SENSITIVE_JSON_KEY", control="schema"))
+                    key_findings(item)
+            elif isinstance(value, list):
+                for item in value:
+                    key_findings(item)
+
+        key_findings(tx.payload)
+        return findings
+
+    def facts(self, tx, findings, high_risk=False, memory_quarantined=False):
+        tool = TOOLS.get(tx.resource.name if tx.resource else "")
+        return {
+            "findings": [f.model_dump() for f in findings],
+            "high_risk": high_risk,
+            "tool": {
+                "known": tool is not None,
+                "required_scopes": list(tool.required_scopes) if tool else [],
+            },
+            "memory_quarantined": memory_quarantined,
+        }
+
+    async def decide(self, tx, snapshot, facts):
+        started = time.perf_counter()
+        with self.tracer.start_as_current_span(
+            "policy.evaluate", record_exception=False, set_status_on_exception=False
+        ):
+            decision = await self.engine.evaluate(tx, snapshot, facts)
+        self.metrics.policy_evaluations.inc()
+        self.metrics.policy_latency.observe(time.perf_counter() - started)
+        return decision
+
+    async def semantic_scan(self, tx, snapshot, findings, high_risk):
+        config = snapshot.policy.controls.prompt_injection
+        if (tx.operation == Operation.MEMORY_WRITE and not snapshot.policy.memory.scan_before_write) or (
+            tx.operation == Operation.MEMORY_READ
+            and tx.context.phase == "output"
+            and not snapshot.policy.memory.scan_after_read
+        ):
+            return
+        necessary = high_risk or bool(tx.risk.prompt_injection) or config.semantic.always_scan
+        tx.context.semantic_required = necessary
+        if not config.enabled or not config.semantic.enabled or not necessary:
+            return
+        # Deterministic blocking facts are sufficient. Never send detected credentials to a classifier.
+        if any(f.action in {"BLOCK", "QUARANTINE"} for f in findings):
+            return
+        started = time.perf_counter()
+        with self.tracer.start_as_current_span(
+            "semantic.analyze", record_exception=False, set_status_on_exception=False
+        ):
+            try:
+                sanitized, _ = transform(tx.payload, findings)
+                scan_tx = tx.model_copy(update={"payload": sanitized}, deep=True)
+                risk = await asyncio.wait_for(self.semantic.analyze(scan_tx), self.semantic_timeout)
+                risk = SemanticRisk.model_validate(risk)
+                tx.risk.prompt_injection = max(tx.risk.prompt_injection, risk.prompt_injection)
+                tx.risk.data_exfiltration = risk.data_exfiltration
+                tx.risk.tool_misuse = risk.tool_misuse
+                tx.risk.semantic_status = "ok"
+            except Exception:
+                tx.risk.semantic_status = "unavailable"
+        self.metrics.semantic_scans.labels(tx.risk.semantic_status).inc()
+        self.metrics.semantic_latency.observe(time.perf_counter() - started)
+
+    async def execute(self, request, principal):
+        with self.tracer.start_as_current_span(
+            "security.transaction", record_exception=False, set_status_on_exception=False
+        ) as span:
+            return await self._execute(request, principal, f"{span.get_span_context().trace_id:032x}", span)
+
+    async def _execute(self, request, principal, trace_id, span):
+        started = time.perf_counter()
+        tx = self.prepare(request, principal)
+        snapshot = self.policies.active  # One revision for the entire transaction, including output.
+        policy = snapshot.policy
+        try:
+            prompt_hash = hashlib.sha256(encoded(tx.payload)).hexdigest()
+        except (ValueError, RecursionError):
+            return await self.transport_invalid(tx, snapshot, trace_id)
+        findings = []
+        latencies = {}
+        record = None
+        output = None
+        input_decision = None
+        reservation = Reservation()
+        reconciled = False
+        executed = False
+        reserved_at = None
+        tokens_used = 0
+        credits_used = 0
+        try:
+            control_start = time.perf_counter()
+            findings += schema.inspect(tx)
+            raw_size = len(encoded(tx.payload))
+            if raw_size > policy.limits.request_bytes:
+                findings.append(Finding(code="REQUEST_TOO_LARGE", control="size"))
+            if raw_size > policy.limits.max_input_tokens:
+                findings.append(Finding(code="INPUT_TOKEN_LIMIT_EXCEEDED", control="size"))
+            if tx.payload.get("max_tokens", 256) > policy.limits.max_output_tokens:
+                findings.append(Finding(code="OUTPUT_TOKEN_LIMIT_EXCEEDED", control="size"))
+            try:
+                tx.payload = canonicalize(tx.payload)
+            except ValueError:
+                findings.append(Finding(code="CANONICALIZATION_INVALID", control="schema"))
+            tx.metadata["response_limit"] = policy.limits.response_bytes
+            tx.metadata["network_policy"] = policy.network.model_dump()
+            # Lookup is scoped before content is inspected; cross-tenant lookups return no record.
+            if tx.operation == Operation.MEMORY_READ and not findings:
+                record = await self.memory.lookup(tx.payload["memory_id"], principal.tenant_id)
+                if record:
+                    tx.resource = Resource(
+                        name=record.memory_id,
+                        tenant_id=record.tenant_id,
+                        owner=record.owner,
+                        classification=record.classification,
+                    )
+                    tx.context.source, tx.context.source_trust = record.source, record.source_trust
+                else:
+                    findings.append(Finding(code="MEMORY_NOT_FOUND", control="memory-authz"))
+            findings += await self.controls(tx, snapshot)
+            digest = approval_digest(tx, policy.metadata.revision)
+            tx.context.approval_verified = await self.approvals.check(request.approval_token, digest)
+            latencies["controls"] = time.perf_counter() - control_start
+            self.metrics.control_latency.observe(latencies["controls"])
+            tokens, credits = estimate(tx, policy)
+            try:
+                reservation = await self.budgets.reserve(tx, policy, tokens, credits)
+                reserved_at = time.perf_counter()
+                tx.budget.available = bool(reservation.id)
+                tx.budget.reservation_id = reservation.id
+                tx.budget.reserved_credits = reservation.credits
+                tx.budget.violations = reservation.violations
+                tx.budget.steps, tx.budget.llm_calls, tx.budget.tool_calls = (
+                    reservation.steps,
+                    reservation.llm_calls,
+                    reservation.tool_calls,
+                )
+            except Exception:
+                tx.budget.available = False
+            high_risk = (
+                tx.context.source_trust == "untrusted"
+                or (
+                    tx.operation in {Operation.MCP_TOOL_CALL, Operation.TOOL_CALL, Operation.API_CALL}
+                    and tx.effect != Effect.READ
+                )
+                or bool(tx.resource and tx.resource.classification == "restricted")
+            )
+            # Skip expensive inference for requests already denied by deterministic policy.
+            preliminary = await self.decide(
+                tx, snapshot, self.facts(tx, findings, high_risk, bool(record and record.quarantined))
+            )
+            if preliminary.decision in PERMITTED:
+                await self.semantic_scan(tx, snapshot, findings, high_risk)
+            decision = await self.decide(
+                tx, snapshot, self.facts(tx, findings, high_risk, bool(record and record.quarantined))
+            )
+            input_decision = decision.model_copy(deep=True)
+            remaining_reservation = (
+                (policy.budgets.per_agent.reservation_ttl_seconds - (time.perf_counter() - reserved_at))
+                if reserved_at
+                else 0
+            )
+            if decision.decision in PERMITTED and remaining_reservation <= 0.05:
+                findings.append(Finding(code="RESERVATION_EXPIRED", control="budget"))
+                decision = await self.decide(tx, snapshot, self.facts(tx, findings, high_risk))
+            if decision.decision in PERMITTED:
+                tx.payload, changes = transform(tx.payload, findings)
+                decision.transformations += changes
+                transformed_findings = schema.inspect(tx)
+                if len(encoded(tx.payload)) > policy.limits.request_bytes:
+                    transformed_findings.append(Finding(code="TRANSFORMED_REQUEST_TOO_LARGE", control="size"))
+                if transformed_findings:
+                    findings += transformed_findings
+                    decision = await self.decide(tx, snapshot, self.facts(tx, findings, high_risk))
+                input_decision = decision.model_copy(deep=True)
+                # Consumption is atomic; two concurrent requests cannot execute with one approval.
+                if decision.decision not in PERMITTED:
+                    pass
+                elif tx.context.approval_verified and not await self.approvals.check(
+                    request.approval_token, digest, consume=True
+                ):
+                    findings.append(Finding(code="APPROVAL_ALREADY_USED", control="approval"))
+                    decision = await self.decide(tx, snapshot, self.facts(tx, findings, high_risk))
+                else:
+                    # Record authorization durably before performing a side effect.
+                    await self.audit.append(
+                        AuditEvent.from_transaction(
+                            tx, input_decision, prompt_hash, trace_id, latencies, phase="authorization"
+                        )
+                    )
+                    if not await self.budgets.begin(reservation):
+                        findings.append(Finding(code="RESERVATION_EXPIRED", control="budget"))
+                        raise RuntimeError("Reservation could not start execution")
+                    remaining_reservation = policy.budgets.per_agent.reservation_ttl_seconds - (
+                        time.perf_counter() - reserved_at
+                    )
+                    if remaining_reservation <= 0.05:
+                        findings.append(Finding(code="RESERVATION_EXPIRED", control="budget"))
+                        raise RuntimeError("Reservation expired before execution")
+                    upstream_started = time.perf_counter()
+                    with self.tracer.start_as_current_span(
+                        "upstream.execute", record_exception=False, set_status_on_exception=False
+                    ):
+                        executed = True
+                        result = await asyncio.wait_for(
+                            self.upstream(tx, record, policy),
+                            min(self.upstream_timeout, remaining_reservation - 0.01),
+                        )
+                    latencies["upstream"] = time.perf_counter() - upstream_started
+                    tokens_used = max(tx.budget.estimated_input_tokens, result.input_tokens) + max(
+                        0, result.output_tokens
+                    )
+                    credits_used = actual_credits(
+                        tx,
+                        policy,
+                        max(tx.budget.estimated_input_tokens, result.input_tokens),
+                        max(0, result.output_tokens),
+                    )
+                    output_findings = schema.inspect_output(tx, result.output)
+                    if len(encoded(result.output)) > policy.limits.response_bytes:
+                        output_findings.append(Finding(code="RESPONSE_TOO_LARGE", control="output-size"))
+                    if (
+                        result.output_tokens > tx.budget.max_output_tokens
+                        and tx.operation == Operation.LLM_REQUEST
+                    ):
+                        output_findings.append(
+                            Finding(code="UPSTREAM_TOKEN_LIMIT_EXCEEDED", control="output-size")
+                        )
+                    out_tx = tx.model_copy(deep=True)
+                    out_tx.context.phase = "output"
+                    if tx.operation in {Operation.MCP_TOOL_CALL, Operation.TOOL_CALL, Operation.API_CALL}:
+                        out_tx.context.source_trust = (
+                            "untrusted"
+                            if "network" in self.adapters and tx.operation == Operation.API_CALL
+                            else self.mcp_output_trust
+                        )
+                    out_tx.payload = canonicalize(result.output)
+                    out_tx.risk.semantic_status = "not_required"
+                    output_findings += await self.controls(out_tx, snapshot, output=True)
+                    output_high_risk = high_risk or tx.operation in {
+                        Operation.MEMORY_READ,
+                        Operation.MCP_TOOL_CALL,
+                        Operation.TOOL_CALL,
+                        Operation.API_CALL,
+                    }
+                    # Outputs are untrusted; semantic scans are conditional, as configured.
+                    await self.semantic_scan(
+                        out_tx,
+                        snapshot,
+                        output_findings,
+                        output_high_risk and out_tx.context.source_trust == "untrusted",
+                    )
+                    output_decision = await self.decide(
+                        out_tx, snapshot, self.facts(out_tx, output_findings, output_high_risk)
+                    )
+                    findings += output_findings
+                    if output_decision.decision in PERMITTED:
+                        output, changes = transform(out_tx.payload, output_findings)
+                        output_decision.transformations += changes
+                        if len(encoded(output)) > policy.limits.response_bytes:
+                            finding = Finding(code="TRANSFORMED_RESPONSE_TOO_LARGE", control="output-size")
+                            findings.append(finding)
+                            output_findings.append(finding)
+                            output_decision = await self.decide(
+                                out_tx, snapshot, self.facts(out_tx, output_findings, output_high_risk)
+                            )
+                            output = None
+                        else:
+                            order = {Decision.ALLOW: 0, Decision.WARN: 1, Decision.REDACT: 2}
+                            output_decision.decision = max(
+                                [decision.decision, output_decision.decision],
+                                key=lambda action: order[action],
+                            )
+                            output_decision.reason_codes = sorted(
+                                set(decision.reason_codes + output_decision.reason_codes)
+                            )
+                            output_decision.controls = sorted(
+                                set(decision.controls + output_decision.controls)
+                            )
+                            output_decision.transformations = (
+                                decision.transformations + output_decision.transformations
+                            )
+                        decision = output_decision
+                    else:
+                        decision = output_decision
+                        if record and decision.decision == Decision.QUARANTINE:
+                            await self.memory.quarantine(record)
+            elif decision.decision == Decision.QUARANTINE:
+                # Only persist quarantined content after memory authorization passed. Rego enforces this.
+                if tx.operation == Operation.MEMORY_WRITE:
+                    if (
+                        "SCHEMA_INVALID" not in decision.reason_codes
+                        and "SECRET_DETECTED" not in decision.reason_codes
+                    ):
+                        await self.audit.append(
+                            AuditEvent.from_transaction(
+                                tx, decision, prompt_hash, trace_id, latencies, phase="quarantine"
+                            )
+                        )
+                        if not await self.budgets.begin(reservation):
+                            findings.append(Finding(code="RESERVATION_EXPIRED", control="budget"))
+                            raise RuntimeError("Quarantine reservation expired")
+                        executed = True
+                        quarantined = await self.memory.write(
+                            tx, policy.memory.max_ttl_seconds, quarantined=True
+                        )
+                        tokens_used, credits_used = tx.budget.estimated_input_tokens, reservation.credits
+                        output = {"memory_id": quarantined.memory_id, "quarantined": True}
+                elif record:
+                    await self.memory.quarantine(record)
+            tx.budget.consumed_credits = credits_used
+            try:
+                reconciled = await self.budgets.reconcile(reservation, tokens_used, credits_used)
+            except Exception:
+                reconciled = False
+            if not reconciled:
+                findings.append(Finding(code="BUDGET_RECONCILIATION_FAILED", control="budget"))
+                decision = await self.decide(tx, snapshot, self.facts(tx, findings, high_risk))
+                output = None
+        except asyncio.CancelledError:
+            if reservation.id:
+                await asyncio.shield(
+                    self.budgets.reconcile(
+                        reservation,
+                        reservation.tokens if executed else 0,
+                        reservation.credits if executed else 0,
+                    )
+                )
+            raise
+        except Exception:
+            # Error details can contain attacker-controlled evidence or upstream secrets; never return them.
+            findings.append(Finding(code="UPSTREAM_OR_STORAGE_UNAVAILABLE", control="availability"))
+            decision = await self.decide(tx, snapshot, self.facts(tx, findings))
+            output = None
+            if executed:
+                tokens_used, credits_used = reservation.tokens, reservation.credits
+            if not reconciled:
+                try:
+                    await self.budgets.reconcile(reservation, tokens_used, credits_used)
+                except Exception:
+                    pass
+            tx.budget.consumed_credits = credits_used
+        latencies["total"] = time.perf_counter() - started
+        span.set_attribute("security.decision", decision.decision.value)
+        span.set_attribute("security.request_id", tx.request_id)
+        span.set_attribute("security.policy_revision", decision.policy_revision)
+        try:
+            await self.audit.append(
+                AuditEvent.from_transaction(tx, decision, prompt_hash, trace_id, latencies)
+            )
+        except Exception:
+            findings.append(Finding(code="AUDIT_UNAVAILABLE", control="audit"))
+            decision = await self.decide(tx, snapshot, self.facts(tx, findings))
+            output = None
+        self.metrics.record(tx, decision, findings, latencies["total"])
+        return GatewayResult(
+            security=decision, output=output, input_security=input_decision, budget=tx.budget.model_dump()
+        )
+
+    async def upstream(self, tx, record, policy):
+        if tx.operation == Operation.MEMORY_WRITE:
+            record = await self.memory.write(tx, policy.memory.max_ttl_seconds)
+            return UpstreamResult(output={"memory_id": record.memory_id, "source_trust": record.source_trust})
+        if tx.operation == Operation.MEMORY_READ:
+            actual = await self.memory.get(
+                record.memory_id,
+                tx.principal.tenant_id,
+                tx.principal.subject,
+                "memory:admin" in tx.principal.scopes,
+            )
+            if actual is None or actual.quarantined:
+                raise RuntimeError("Memory no longer accessible")
+            record.content = actual.content
+            tx.context.source, tx.context.source_trust = actual.source, actual.source_trust
+            return UpstreamResult(
+                output={
+                    "content": record.content,
+                    "source": record.source,
+                    "source_trust": record.source_trust,
+                    "classification": record.classification,
+                    "security_labels": record.security_labels,
+                }
+            )
+        if tx.operation == Operation.AGENT_MESSAGE:
+            return UpstreamResult(output={"message": tx.payload["message"], "agent": tx.resource.name})
+        key = tx.resource.provider if tx.operation == Operation.LLM_REQUEST else "mcp"
+        if tx.operation == Operation.API_CALL and "network" in self.adapters:
+            key = "network"
+        adapter = self.adapters.get(key)
+        if adapter is None:
+            raise RuntimeError("No configured adapter")
+        return await adapter.execute(tx)
+
+    async def transport_invalid(self, tx, snapshot, trace_id):
+        finding = Finding(code="JSON_INVALID", control="schema")
+        verdict = await self.decide(
+            tx.model_copy(update={"payload": {}}), snapshot, self.facts(tx, [finding])
+        )
+        await self.audit.append(AuditEvent.from_transaction(tx, verdict, "", trace_id, {}))
+        self.metrics.record(tx, verdict, [finding], 0)
+        return GatewayResult(security=verdict)

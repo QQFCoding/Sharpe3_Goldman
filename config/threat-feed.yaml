@@ -1,0 +1,15 @@
+revision: local-001
+rules:
+  - id: AICL-EXEC-001
+    category: command_execution
+    severity: critical
+    applies_to: [tool_argument, model_output]
+    regex:
+      - '(?i)(curl|wget)\s+[^\n]+\|\s*(bash|sh)'
+    action: BLOCK
+  - id: AICL-EXFIL-001
+    category: data_exfiltration
+    applies_to: ['*']
+    regex:
+      - '(?i)(send|upload|exfiltrate).{0,100}(credentials|secrets|api.?keys).{0,100}attacker'
+    action: BLOCK
