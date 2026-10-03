@@ -2,6 +2,7 @@ revision: local-001
 rules:
   - id: AICL-EXEC-001
     category: command_execution
+    allow_security_discussion: true
     severity: critical
     applies_to: [tool_argument, model_output]
     regex:

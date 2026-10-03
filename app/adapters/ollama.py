@@ -1,5 +1,6 @@
 from app.adapters.base import UpstreamResult
 from app.adapters.openai_compatible import bounded_json
+from app.adapters.spotlighting import spotlight
 
 
 class OllamaAdapter:
@@ -12,7 +13,7 @@ class OllamaAdapter:
             f"{self.url}/api/chat",
             {
                 "model": transaction.resource.model,
-                "messages": transaction.payload["messages"],
+                "messages": spotlight(transaction.payload["messages"]),
                 "stream": False,
                 "options": {"num_predict": transaction.budget.max_output_tokens},
             },

@@ -26,11 +26,24 @@ class ScanControl(StrictModel):
     output_action: Literal["ALLOW", "REDACT", "BLOCK"]
 
 
+class ClassifierThresholds(StrictModel):
+    review_threshold: float = Field(default=0.3, ge=0, le=1)
+    block_threshold: float = Field(default=0.85, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def thresholds(self):
+        if self.review_threshold > self.block_threshold:
+            raise ValueError("review_threshold must be <= block_threshold")
+        return self
+
+
 class SemanticConfig(StrictModel):
     enabled: bool = True
     always_scan: bool = False
+    uncertain_read: Literal["WARN", "ALLOW", "REQUIRE_APPROVAL"] = "REQUIRE_APPROVAL"
     review_threshold: float = Field(default=0.5, ge=0, le=1)
     block_threshold: float = Field(default=0.85, ge=0, le=1)
+    provider_thresholds: dict[Literal["deberta", "prompt_guard", "ollama"], ClassifierThresholds] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def thresholds(self):
@@ -147,6 +160,43 @@ class ResourceCosts(StrictModel):
     default_tool: float = Field(default=1, ge=0, allow_inf_nan=False)
 
 
+class Declassification(StrictModel):
+    sinks: list[str] = Field(min_length=1)
+    classifications: set[Literal["private", "secret"]] = Field(min_length=1)
+    required_scope: str = Field(min_length=1)
+
+
+class InformationFlow(StrictModel):
+    enabled: bool = True
+    untrusted_to_mutating: Literal["BLOCK", "REQUIRE_APPROVAL"] = "REQUIRE_APPROVAL"
+    declassification: list[Declassification] = Field(default_factory=list)
+
+
+class TaskAlignment(StrictModel):
+    enabled: bool = True
+    approve_below: float = Field(default=0.6, ge=0, le=1)
+    block_below: float = Field(default=0.25, ge=0, le=1)
+    minimum_confidence: float = Field(default=0.7, ge=0, le=1)
+    uncertain_read: Literal["WARN", "ALLOW", "REQUIRE_APPROVAL"] = "WARN"
+
+    @model_validator(mode="after")
+    def thresholds(self):
+        if self.block_below > self.approve_below:
+            raise ValueError("Alignment block threshold must not exceed review threshold")
+        return self
+
+
+class McpPolicy(StrictModel):
+    manifest_pinning: bool = True
+    manifest_change: Literal["WARN", "REQUIRE_APPROVAL", "BLOCK"] = "BLOCK"
+
+
+class DelegationPolicy(StrictModel):
+    capability_attenuation: Literal[True] = True
+    max_depth: int = Field(default=4, ge=0, le=16)
+    allowed_peers: list[str] = Field(default_factory=lambda: ["demo.echo", "demo-child"])
+
+
 class Policy(StrictModel):
     apiVersion: Literal["aicl/v1"] = "aicl/v1"
     metadata: Metadata
@@ -164,6 +214,10 @@ class Policy(StrictModel):
     threat_intelligence: ThreatConfig = Field(default_factory=ThreatConfig)
     audit: AuditPolicy = Field(default_factory=AuditPolicy)
     resource_costs: ResourceCosts = Field(default_factory=ResourceCosts)
+    information_flow: InformationFlow = Field(default_factory=InformationFlow)
+    task_alignment: TaskAlignment = Field(default_factory=TaskAlignment)
+    mcp: McpPolicy = Field(default_factory=McpPolicy)
+    delegation: DelegationPolicy = Field(default_factory=DelegationPolicy)
 
 
 class PolicySnapshot(StrictModel):

@@ -5,6 +5,7 @@ import httpx
 from psycopg_pool import AsyncConnectionPool
 from redis.asyncio import Redis
 
+from app.adapters.manifests import ManifestRegistry
 from app.adapters.mcp import MCPAdapter
 from app.adapters.network import NetworkAdapter
 from app.adapters.ollama import OllamaAdapter
@@ -13,14 +14,20 @@ from app.audit.repository import AuditEvent, AuditRepository
 from app.budget.manager import InMemoryBudgetManager, RedisBudgetManager
 from app.core.auth import ApprovalStore, Authenticator
 from app.core.decision import Decision, DecisionResult, GatewayResult
+from app.core.delegation import DelegationStore
+from app.core.jwt_auth import JwtVerifier
 from app.core.pipeline import Pipeline
 from app.core.transaction import Operation, Principal, SecurityTransaction
+from app.core.workflows import WorkflowStore
 from app.memory.service import MemoryService
 from app.policy.engine import OpaEngine
 from app.policy.loader import PolicyStore
 from app.semantic.base import UnavailableProvider
+from app.semantic.deberta import DebertaProvider
 from app.semantic.ollama_classifier import OllamaSecurityProvider
 from app.semantic.prompt_guard import PromptGuardProvider
+from app.semantic.task_alignment import TaskAlignmentGuard
+from app.settings import ROOT
 from app.telemetry.metrics import Metrics
 from app.telemetry.tracing import create_tracer
 
@@ -30,6 +37,12 @@ class Runtime:
         self.settings = settings
         self.policies = PolicyStore(settings.policy_path)
         self.auth = Authenticator(settings.demo_mode, settings.auth_file)
+        jwks_path = settings.jwt_jwks_path
+        if jwks_path is None and settings.demo_mode and (ROOT / "config/demo-jwks.json").is_file():
+            jwks_path = ROOT / "config/demo-jwks.json"
+        if jwks_path:
+            self.auth.jwt = JwtVerifier(jwks_path, settings.jwt_issuer,
+                settings.jwt_audience, self.auth.records)
         self.stack = AsyncExitStack()
         self.metrics = Metrics()
         self.trace_provider, self.tracer = create_tracer(settings.otlp_endpoint)
@@ -60,11 +73,15 @@ class Runtime:
         await self.audit.initialize()
         await self.memory.initialize()
         self.approvals = ApprovalStore(self.redis)
+        self.workflows = WorkflowStore(self.redis)
+        self.delegations = DelegationStore(self.workflows)
         self.budgets = RedisBudgetManager(self.redis) if self.redis else InMemoryBudgetManager()
         self.engine = OpaEngine(self.client, self.settings.opa_url, self.settings.opa_binary)
         semantic = UnavailableProvider()
         if self.settings.semantic_provider == "prompt_guard":
             semantic = PromptGuardProvider(self.settings.prompt_guard_path)
+        elif self.settings.semantic_provider == "deberta":
+            semantic = DebertaProvider(self.settings.deberta_path)
         elif self.settings.semantic_provider == "ollama":
             semantic = OllamaSecurityProvider(
                 self.client, self.settings.ollama_url, self.settings.ollama_model
@@ -96,6 +113,12 @@ class Runtime:
         self.pipeline.mcp_output_trust = self.settings.mcp_output_trust or (
             "trusted" if self.settings.demo_mode else "untrusted"
         )
+        self.pipeline.workflows = self.workflows
+        self.pipeline.manifests = ManifestRegistry(ROOT / "config/tool-manifests.json")
+        self.pipeline.alignment = TaskAlignmentGuard(
+            self.client if self.settings.alignment_provider == "ollama" else None,
+            self.settings.ollama_url, self.settings.ollama_model)
+        self.metrics.revisions(self.policies.active)
         return self
 
     async def close(self):

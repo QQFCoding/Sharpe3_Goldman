@@ -37,6 +37,11 @@ class Principal(StrictModel):
     on_behalf_of: str | None = None
     authentication_method: str = "api_key"
     authenticated: bool = True
+    delegator: str | None = None
+    parent_agent: str | None = None
+    delegation_depth: int = Field(default=0, ge=0)
+    delegated_workflow: str | None = None
+    capabilities: list[str] = Field(default_factory=list)
 
 
 class Resource(StrictModel):
@@ -69,6 +74,13 @@ class RiskSignals(StrictModel):
     data_exfiltration: float = Field(default=0, ge=0, le=1)
     tool_misuse: float = Field(default=0, ge=0, le=1)
     semantic_status: str = "not_required"
+    risk_band: str = "LOW_RISK"
+    task_alignment: float = Field(default=1, ge=0, le=1, allow_inf_nan=False)
+    goal_deviation: float = Field(default=0, ge=0, le=1, allow_inf_nan=False)
+    data_exfiltration_intent: float = Field(default=0, ge=0, le=1, allow_inf_nan=False)
+    unexpected_side_effect: float = Field(default=0, ge=0, le=1, allow_inf_nan=False)
+    alignment_confidence: float = Field(default=0, ge=0, le=1, allow_inf_nan=False)
+    alignment_status: str = "not_required"
 
 
 class BudgetContext(StrictModel):

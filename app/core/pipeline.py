@@ -9,9 +9,11 @@ from app.budget.manager import Reservation
 from app.budget.pricing import actual_credits, estimate
 from app.controls import pii, prompt_patterns, schema, secrets
 from app.controls.base import canonicalize, encoded, transform
+from app.controls.information_flow import facts as flow_facts
 from app.controls.ssrf import NetworkGuard
 from app.core.auth import approval_digest
 from app.core.decision import PERMITTED, Decision, GatewayResult
+from app.core.labels import DataSecurityLabel, source_label
 from app.core.transaction import (
     Effect,
     Finding,
@@ -21,6 +23,7 @@ from app.core.transaction import (
     SecurityTransaction,
 )
 from app.semantic.base import SemanticRisk
+from app.semantic.task_alignment import AlignmentRisk
 
 
 class Pipeline:
@@ -45,6 +48,18 @@ class Pipeline:
         self.adapters = adapters
         self.mcp_output_trust = "untrusted"
         self.semantic_timeout, self.upstream_timeout = semantic_timeout, upstream_timeout
+        self.workflows = self.manifests = self.alignment = None
+
+    async def timed(self, tx, stage, awaitable):
+        started = time.perf_counter()
+        with self.tracer.start_as_current_span(stage, record_exception=False, set_status_on_exception=False):
+            try:
+                return await awaitable
+            finally:
+                seconds = time.perf_counter() - started
+                timings = tx.metadata.setdefault("stage_latencies", {})
+                timings[stage] = timings.get(stage, 0) + seconds
+                self.metrics.stages.labels(stage).observe(seconds)
 
     def prepare(self, request, principal):
         resource = request.resource.model_copy(deep=True) if request.resource else None
@@ -130,6 +145,9 @@ class Pipeline:
                 "required_scopes": list(tool.required_scopes) if tool else [],
             },
             "memory_quarantined": memory_quarantined,
+            "data_flow": tx.metadata.get("data_flow", {"enabled": False}),
+            "trusted_intent": tx.metadata.get("trusted_intent"),
+            "semantic_provider": getattr(self.semantic, "provider_id", "none"),
         }
 
     async def decide(self, tx, snapshot, facts):
@@ -140,10 +158,14 @@ class Pipeline:
             decision = await self.engine.evaluate(tx, snapshot, facts)
         self.metrics.policy_evaluations.inc()
         self.metrics.policy_latency.observe(time.perf_counter() - started)
+        self.metrics.stages.labels("opa").observe(time.perf_counter() - started)
+        if "POLICY_ENGINE_UNAVAILABLE" in decision.reason_codes:
+            self.metrics.opa_failures.inc()
         return decision
 
     async def semantic_scan(self, tx, snapshot, findings, high_risk):
         config = snapshot.policy.controls.prompt_injection
+        thresholds = config.semantic.provider_thresholds.get(getattr(self.semantic, "provider_id", "none"), config.semantic)
         if (tx.operation == Operation.MEMORY_WRITE and not snapshot.policy.memory.scan_before_write) or (
             tx.operation == Operation.MEMORY_READ
             and tx.context.phase == "output"
@@ -170,10 +192,37 @@ class Pipeline:
                 tx.risk.data_exfiltration = risk.data_exfiltration
                 tx.risk.tool_misuse = risk.tool_misuse
                 tx.risk.semantic_status = "ok"
+                score = max(risk.prompt_injection, risk.data_exfiltration, risk.tool_misuse)
+                tx.risk.risk_band = ("HIGH_RISK" if score >= thresholds.block_threshold else
+                    "UNCERTAIN" if score >= thresholds.review_threshold else "LOW_RISK")
+                self.metrics.scores.labels("prompt_injection").observe(risk.prompt_injection)
+                self.metrics.scores.labels("exfiltration").observe(risk.data_exfiltration)
             except Exception:
                 tx.risk.semantic_status = "unavailable"
         self.metrics.semantic_scans.labels(tx.risk.semantic_status).inc()
+        self.metrics.semantic_providers.labels(getattr(self.semantic, "provider_id", "none"), tx.risk.semantic_status).inc()
         self.metrics.semantic_latency.observe(time.perf_counter() - started)
+        self.metrics.stages.labels("semantic").observe(time.perf_counter() - started)
+
+    async def alignment_scan(self, tx, snapshot, label):
+        intent = await self.workflows.intent(tx.principal, tx.context.workflow.workflow_id)
+        if not intent or not snapshot.policy.task_alignment.enabled:
+            return
+        try:
+            risk = await self.timed(tx, "task_alignment", asyncio.wait_for(
+                self.alignment.analyze(intent, tx, label, {"steps": tx.budget.steps,
+                    "llm_calls": tx.budget.llm_calls, "tool_calls": tx.budget.tool_calls}),
+                self.semantic_timeout))
+            risk = AlignmentRisk.model_validate(risk)
+            tx.risk.task_alignment = risk.task_alignment
+            tx.risk.goal_deviation = risk.goal_deviation
+            tx.risk.data_exfiltration_intent = risk.data_exfiltration_intent
+            tx.risk.unexpected_side_effect = risk.unexpected_side_effect
+            tx.risk.alignment_confidence = risk.confidence
+            tx.risk.alignment_status = "ok"
+            self.metrics.scores.labels("task_alignment").observe(risk.task_alignment)
+        except Exception:
+            tx.risk.alignment_status = "unavailable"
 
     async def execute(self, request, principal):
         with self.tracer.start_as_current_span(
@@ -192,6 +241,8 @@ class Pipeline:
             return await self.transport_invalid(tx, snapshot, trace_id)
         findings = []
         latencies = {}
+        tx.metadata["stage_latencies"] = latencies
+        label = source_label(tx)
         record = None
         output = None
         input_decision = None
@@ -212,7 +263,11 @@ class Pipeline:
             if tx.payload.get("max_tokens", 256) > policy.limits.max_output_tokens:
                 findings.append(Finding(code="OUTPUT_TOKEN_LIMIT_EXCEEDED", control="size"))
             try:
-                tx.payload = canonicalize(tx.payload)
+                normalize_started = time.perf_counter()
+                with self.tracer.start_as_current_span("normalize", record_exception=False, set_status_on_exception=False):
+                    tx.payload = canonicalize(tx.payload)
+                latencies["normalize"] = time.perf_counter() - normalize_started
+                self.metrics.stages.labels("normalize").observe(latencies["normalize"])
             except ValueError:
                 findings.append(Finding(code="CANONICALIZATION_INVALID", control="schema"))
             tx.metadata["response_limit"] = policy.limits.response_bytes
@@ -230,14 +285,43 @@ class Pipeline:
                     tx.context.source, tx.context.source_trust = record.source, record.source_trust
                 else:
                     findings.append(Finding(code="MEMORY_NOT_FOUND", control="memory-authz"))
-            findings += await self.controls(tx, snapshot)
+            category = "direct_user_injection"
+            if tx.operation == Operation.MEMORY_READ or tx.operation == Operation.MEMORY_WRITE:
+                category = "memory_injection"
+            elif tx.operation == Operation.AGENT_MESSAGE:
+                category = "agent_message_injection"
+            elif tx.context.source == "retrieved":
+                category = "retrieved_document_injection"
+            tx.metadata["source_category"] = category
+            label = DataSecurityLabel.join(
+                await self.workflows.label(principal, tx.context.workflow.workflow_id),
+                source_label(tx, "memory" if record else "user"))
+            if record and record.data_security:
+                label = DataSecurityLabel.join(label, record.data_security)
+            if tx.operation == Operation.MEMORY_WRITE:
+                label = DataSecurityLabel.join(label, source_label(tx, "memory",
+                    classification=tx.payload.get("classification", "internal")))
+            tx.metadata["data_label"] = label.model_dump(mode="json")
+            tx.metadata["data_flow"] = flow_facts(tx, label, policy)
+            intent = await self.workflows.intent(principal, tx.context.workflow.workflow_id)
+            tx.metadata["trusted_intent"] = intent.model_dump(mode="json") if intent else None
+            if principal.delegated_workflow and tx.operation in {Operation.TOOL_CALL, Operation.MCP_TOOL_CALL,
+                    Operation.API_CALL, Operation.AGENT_MESSAGE}:
+                if not tx.resource or tx.resource.name not in principal.capabilities:
+                    findings.append(Finding(code="DELEGATION_CAPABILITY_DENIED", control="delegation"))
+            if tx.operation in {Operation.MCP_TOOL_CALL, Operation.TOOL_CALL}:
+                findings += await self.timed(tx, "mcp_manifest", self.manifests.inspect(
+                    tx, self.adapters.get("mcp"), policy.mcp))
+            findings += await self.timed(tx, "deterministic_controls", self.controls(tx, snapshot))
             digest = approval_digest(tx, policy.metadata.revision)
             tx.context.approval_verified = await self.approvals.check(request.approval_token, digest)
+            findings = [f for f in findings if not (
+                f.control == "mcp-manifest" and f.action == "REQUIRE_APPROVAL" and tx.context.approval_verified)]
             latencies["controls"] = time.perf_counter() - control_start
             self.metrics.control_latency.observe(latencies["controls"])
             tokens, credits = estimate(tx, policy)
             try:
-                reservation = await self.budgets.reserve(tx, policy, tokens, credits)
+                reservation = await self.timed(tx, "budget_reservation", self.budgets.reserve(tx, policy, tokens, credits))
                 reserved_at = time.perf_counter()
                 tx.budget.available = bool(reservation.id)
                 tx.budget.reservation_id = reservation.id
@@ -264,6 +348,8 @@ class Pipeline:
             )
             if preliminary.decision in PERMITTED:
                 await self.semantic_scan(tx, snapshot, findings, high_risk)
+            if preliminary.decision in PERMITTED | {Decision.REQUIRE_APPROVAL}:
+                await self.alignment_scan(tx, snapshot, label)
             decision = await self.decide(
                 tx, snapshot, self.facts(tx, findings, high_risk, bool(record and record.quarantined))
             )
@@ -296,11 +382,12 @@ class Pipeline:
                     decision = await self.decide(tx, snapshot, self.facts(tx, findings, high_risk))
                 else:
                     # Record authorization durably before performing a side effect.
-                    await self.audit.append(
+                    await self.timed(tx, "audit", self.audit.append(
                         AuditEvent.from_transaction(
                             tx, input_decision, prompt_hash, trace_id, latencies, phase="authorization"
                         )
-                    )
+                    ))
+                    await self.workflows.absorb(principal, tx.context.workflow.workflow_id, label)
                     if not await self.budgets.begin(reservation):
                         findings.append(Finding(code="RESERVATION_EXPIRED", control="budget"))
                         raise RuntimeError("Reservation could not start execution")
@@ -320,6 +407,8 @@ class Pipeline:
                             min(self.upstream_timeout, remaining_reservation - 0.01),
                         )
                     latencies["upstream"] = time.perf_counter() - upstream_started
+                    self.metrics.stages.labels("upstream").observe(latencies["upstream"])
+                    output_started = time.perf_counter()
                     tokens_used = max(tx.budget.estimated_input_tokens, result.input_tokens) + max(
                         0, result.output_tokens
                     )
@@ -340,6 +429,7 @@ class Pipeline:
                             Finding(code="UPSTREAM_TOKEN_LIMIT_EXCEEDED", control="output-size")
                         )
                     out_tx = tx.model_copy(deep=True)
+                    out_tx.metadata["stage_latencies"] = latencies
                     out_tx.context.phase = "output"
                     if tx.operation in {Operation.MCP_TOOL_CALL, Operation.TOOL_CALL, Operation.API_CALL}:
                         out_tx.context.source_trust = (
@@ -348,8 +438,19 @@ class Pipeline:
                             else self.mcp_output_trust
                         )
                     out_tx.payload = canonicalize(result.output)
+                    output_label = DataSecurityLabel.join(label,
+                        source_label(out_tx, "memory" if record else "mcp" if tx.operation in {
+                            Operation.MCP_TOOL_CALL, Operation.TOOL_CALL} else "api" if tx.operation == Operation.API_CALL
+                            else "agent" if tx.operation == Operation.AGENT_MESSAGE else "system"),
+                        derived=tx.operation == Operation.LLM_REQUEST)
+                    self.metrics.tokens.labels("input").inc(max(tx.budget.estimated_input_tokens, result.input_tokens))
+                    self.metrics.tokens.labels("output").inc(max(0, result.output_tokens))
+                    tx.metadata["data_label"] = output_label.model_dump(mode="json")
+                    out_tx.metadata["data_label"] = tx.metadata["data_label"]
+                    if tx.operation in {Operation.MCP_TOOL_CALL, Operation.TOOL_CALL}:
+                        out_tx.metadata["source_category"] = "tool_output_injection"
                     out_tx.risk.semantic_status = "not_required"
-                    output_findings += await self.controls(out_tx, snapshot, output=True)
+                    output_findings += await self.timed(out_tx, "output_controls", self.controls(out_tx, snapshot, output=True))
                     output_high_risk = high_risk or tx.operation in {
                         Operation.MEMORY_READ,
                         Operation.MCP_TOOL_CALL,
@@ -367,6 +468,8 @@ class Pipeline:
                         out_tx, snapshot, self.facts(out_tx, output_findings, output_high_risk)
                     )
                     findings += output_findings
+                    if output_findings or out_tx.risk.risk_band != "LOW_RISK":
+                        tx.metadata["source_category"] = out_tx.metadata.get("source_category", "direct_user_injection")
                     if output_decision.decision in PERMITTED:
                         output, changes = transform(out_tx.payload, output_findings)
                         output_decision.transformations += changes
@@ -398,6 +501,9 @@ class Pipeline:
                         decision = output_decision
                         if record and decision.decision == Decision.QUARANTINE:
                             await self.memory.quarantine(record)
+                    latencies["output_controls"] = time.perf_counter() - output_started
+                    if output is not None and decision.decision in PERMITTED:
+                        await self.workflows.absorb(principal, tx.context.workflow.workflow_id, output_label)
             elif decision.decision == Decision.QUARANTINE:
                 # Only persist quarantined content after memory authorization passed. Rego enforces this.
                 if tx.operation == Operation.MEMORY_WRITE:
@@ -423,7 +529,8 @@ class Pipeline:
                     await self.memory.quarantine(record)
             tx.budget.consumed_credits = credits_used
             try:
-                reconciled = await self.budgets.reconcile(reservation, tokens_used, credits_used)
+                reconciled = await self.timed(tx, "budget_reconciliation",
+                    self.budgets.reconcile(reservation, tokens_used, credits_used))
             except Exception:
                 reconciled = False
             if not reconciled:
@@ -458,16 +565,17 @@ class Pipeline:
         span.set_attribute("security.request_id", tx.request_id)
         span.set_attribute("security.policy_revision", decision.policy_revision)
         try:
-            await self.audit.append(
+            await self.timed(tx, "audit", self.audit.append(
                 AuditEvent.from_transaction(tx, decision, prompt_hash, trace_id, latencies)
-            )
+            ))
         except Exception:
             findings.append(Finding(code="AUDIT_UNAVAILABLE", control="audit"))
             decision = await self.decide(tx, snapshot, self.facts(tx, findings))
             output = None
         self.metrics.record(tx, decision, findings, latencies["total"])
         return GatewayResult(
-            security=decision, output=output, input_security=input_decision, budget=tx.budget.model_dump()
+            security=decision, output=output, input_security=input_decision, budget=tx.budget.model_dump(),
+            data_security=tx.metadata.get("data_label", {})
         )
 
     async def upstream(self, tx, record, policy):
@@ -495,7 +603,11 @@ class Pipeline:
                 }
             )
         if tx.operation == Operation.AGENT_MESSAGE:
-            return UpstreamResult(output={"message": tx.payload["message"], "agent": tx.resource.name})
+            return UpstreamResult(output={"message": tx.payload["message"], "agent": tx.resource.name,
+                "metadata": {"sender_agent": tx.principal.agent_id, "tenant_id": tx.principal.tenant_id,
+                "delegator": tx.principal.delegator, "delegation_depth": tx.principal.delegation_depth,
+                "capabilities": tx.principal.capabilities, "workflow_id": tx.context.workflow.workflow_id,
+                "parent_agent": tx.principal.parent_agent}})
         key = tx.resource.provider if tx.operation == Operation.LLM_REQUEST else "mcp"
         if tx.operation == Operation.API_CALL and "network" in self.adapters:
             key = "network"

@@ -1,0 +1,232 @@
+apiVersion: 1
+groups:
+- orgId: 1
+  name: Local Security Alerts
+  folder: AI Control Layer
+  interval: 30s
+  rules:
+  - uid: aicl-block-spike
+    title: Security block rate spike
+    condition: C
+    for: 1m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: More than half of recent protected requests are blocked
+    labels:
+      scope: local-demo
+      severity: warning
+    data:
+    - refId: A
+      datasourceUid: prometheus
+      relativeTimeRange:
+        from: 300
+        to: 0
+      model:
+        refId: A
+        expr: sum(rate(aicl_decisions_total{control="final",decision="BLOCK"}[5m]))
+          / clamp_min(sum(rate(aicl_requests_total[5m])),0.001)
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      relativeTimeRange:
+        from: 0
+        to: 0
+      model:
+        refId: C
+        type: math
+        expression: $A > 0.5
+  - uid: aicl-injection-spike
+    title: Prompt injection spike
+    condition: C
+    for: 1m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Prompt injection spike
+    labels:
+      scope: local-demo
+      severity: warning
+    data:
+    - refId: A
+      datasourceUid: prometheus
+      relativeTimeRange:
+        from: 300
+        to: 0
+      model:
+        refId: A
+        expr: sum(increase(aicl_prompt_injection_total[5m]))
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      relativeTimeRange:
+        from: 0
+        to: 0
+      model:
+        refId: C
+        type: math
+        expression: $A > 10
+  - uid: aicl-semantic-failure
+    title: Semantic provider failures
+    condition: C
+    for: 1m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Semantic provider failures
+    labels:
+      scope: local-demo
+      severity: warning
+    data:
+    - refId: A
+      datasourceUid: prometheus
+      relativeTimeRange:
+        from: 300
+        to: 0
+      model:
+        refId: A
+        expr: sum(increase(aicl_semantic_scans_total{status="unavailable"}[5m]))
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      relativeTimeRange:
+        from: 0
+        to: 0
+      model:
+        refId: C
+        type: math
+        expression: $A > 5
+  - uid: aicl-opa-failure
+    title: OPA failures
+    condition: C
+    for: 1m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: OPA failures
+    labels:
+      scope: local-demo
+      severity: warning
+    data:
+    - refId: A
+      datasourceUid: prometheus
+      relativeTimeRange:
+        from: 300
+        to: 0
+      model:
+        refId: A
+        expr: sum(increase(aicl_opa_failures_total[5m]))
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      relativeTimeRange:
+        from: 0
+        to: 0
+      model:
+        refId: C
+        type: math
+        expression: $A > 0
+  - uid: aicl-budget-spike
+    title: Budget rejection spike
+    condition: C
+    for: 1m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Budget rejection spike
+    labels:
+      scope: local-demo
+      severity: warning
+    data:
+    - refId: A
+      datasourceUid: prometheus
+      relativeTimeRange:
+        from: 300
+        to: 0
+      model:
+        refId: A
+        expr: sum(increase(aicl_budget_rejections_total[5m]))
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      relativeTimeRange:
+        from: 0
+        to: 0
+      model:
+        refId: C
+        type: math
+        expression: $A > 10
+  - uid: aicl-latency-high
+    title: Gateway p95 latency high
+    condition: C
+    for: 1m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Gateway p95 latency high
+    labels:
+      scope: local-demo
+      severity: warning
+    data:
+    - refId: A
+      datasourceUid: prometheus
+      relativeTimeRange:
+        from: 300
+        to: 0
+      model:
+        refId: A
+        expr: histogram_quantile(0.95,sum by(le)(rate(aicl_request_seconds_bucket[5m])))
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      relativeTimeRange:
+        from: 0
+        to: 0
+      model:
+        refId: C
+        type: math
+        expression: $A > 2
+  - uid: aicl-termination-spike
+    title: Agent termination spike
+    condition: C
+    for: 1m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Agent termination spike
+    labels:
+      scope: local-demo
+      severity: warning
+    data:
+    - refId: A
+      datasourceUid: prometheus
+      relativeTimeRange:
+        from: 300
+        to: 0
+      model:
+        refId: A
+        expr: sum(increase(aicl_agent_terminations_total[5m]))
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      relativeTimeRange:
+        from: 0
+        to: 0
+      model:
+        refId: C
+        type: math
+        expression: $A > 3

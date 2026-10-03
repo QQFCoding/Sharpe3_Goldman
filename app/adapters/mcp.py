@@ -8,6 +8,16 @@ class MCPAdapter:
     def __init__(self, client, url, timeout=15):
         self.client, self.url, self.timeout = client, url, timeout
 
+    async def list_tools(self):
+        result = await bounded_json(self.client, f"{self.url}/mcp",
+            {"jsonrpc": "2.0", "id": "manifest", "method": "tools/list"}, 131072, self.timeout)
+        if result.get("id") != "manifest" or result.get("jsonrpc") != "2.0":
+            raise UpstreamFailure("Invalid manifest response")
+        tools = result["result"]["tools"]
+        if not isinstance(tools, list) or len(tools) > 128:
+            raise UpstreamFailure("Invalid manifest list")
+        return tools
+
     async def execute(self, transaction):
         result = await bounded_json(
             self.client,

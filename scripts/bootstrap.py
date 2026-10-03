@@ -34,11 +34,13 @@ def install_opa() -> Path:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--opa-only", action="store_true")
+    parser.add_argument("--semantic", action="store_true", help="Install optional local classifier dependencies")
     args = parser.parse_args()
     if not args.opa_only:
         subprocess.run([sys.executable, "-m", "venv", str(ROOT / ".venv")], check=True)
         python = ROOT / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-        subprocess.run([str(python), "-m", "pip", "install", "-e", ".[test]"], cwd=ROOT, check=True)
+        extras = ".[test,semantic]" if args.semantic else ".[test]"
+        subprocess.run([str(python), "-m", "pip", "install", "-e", extras], cwd=ROOT, check=True)
     print(f"OPA: {install_opa()}")
 
 

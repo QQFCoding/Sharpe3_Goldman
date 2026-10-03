@@ -1,0 +1,101 @@
+{
+  "github.search": {
+    "server_id": "mock",
+    "tool_name": "github.search",
+    "tool_description_hash": "7d8e44a0ae46dcd18846f17b5e45395911781a85f9446b44481591328adab244",
+    "schema_hash": "c3e3aa2f6f20001ee82974e0ef48900a1395f9aaaf19cc206ec1cba2c3d3301f",
+    "effect": "read",
+    "required_scopes": [
+      "repo:read"
+    ],
+    "approved_version": "1.0.0"
+  },
+  "github.read_issue": {
+    "server_id": "mock",
+    "tool_name": "github.read_issue",
+    "tool_description_hash": "aa9ad4c6d6391de30a8362000a75a32707d6f4094c66fcfed084cc791eab1c39",
+    "schema_hash": "218b458f7b08ca4a58dcd19163ceb8b90a8e0426952621af46b06abfed4dd392",
+    "effect": "read",
+    "required_scopes": [
+      "repo:read"
+    ],
+    "approved_version": "1.0.0"
+  },
+  "github.create_issue": {
+    "server_id": "mock",
+    "tool_name": "github.create_issue",
+    "tool_description_hash": "dc191c09fceb65b717659334b7abcee68343f520677e40a66df7277fb5e16782",
+    "schema_hash": "377fc30bbc85c80aba6be241d48f2b860a029490b319a4a4de95018ae88d9179",
+    "effect": "external_side_effect",
+    "required_scopes": [
+      "repo:write"
+    ],
+    "approved_version": "1.0.0"
+  },
+  "github.delete_repository": {
+    "server_id": "mock",
+    "tool_name": "github.delete_repository",
+    "tool_description_hash": "b50049c1352419111cb5bb72e20260163d181214ffb0ba2cbd138417b5710deb",
+    "schema_hash": "a74bdfb22ce100941d12281f2ceacb29886a8703075392df7f64a0a446f36978",
+    "effect": "destructive",
+    "required_scopes": [
+      "repo:admin"
+    ],
+    "approved_version": "1.0.0"
+  },
+  "filesystem.read": {
+    "server_id": "mock",
+    "tool_name": "filesystem.read",
+    "tool_description_hash": "13174082ae064f9fc4a28294bc9f9683ba378a0b08361ab32bae40c93c92f3a1",
+    "schema_hash": "885963e17dbe8c32e333b318aa22a73199b4f66ceae4ef7572a4a8b87157a2e3",
+    "effect": "read",
+    "required_scopes": [
+      "files:read"
+    ],
+    "approved_version": "1.0.0"
+  },
+  "filesystem.write": {
+    "server_id": "mock",
+    "tool_name": "filesystem.write",
+    "tool_description_hash": "197d49f43b5b6d317f293eadbb025b12e38cb5fb2364a4448d9e0c8528c3d9de",
+    "schema_hash": "8b2e7437275dca87b9bb6597c4b47b7ddb981d5f6a7aab088dccf9c4e0583699",
+    "effect": "write",
+    "required_scopes": [
+      "files:write"
+    ],
+    "approved_version": "1.0.0"
+  },
+  "email.send": {
+    "server_id": "mock",
+    "tool_name": "email.send",
+    "tool_description_hash": "a34090ee6efeb9ed770db62b55c61dc64e6dc8eb8fb3bc36edb6df52aa9ac21e",
+    "schema_hash": "e985f6a94e2c3cc419ff3fc3f28bbae87f4385fedb1892b1522cea3fad28d8f8",
+    "effect": "external_side_effect",
+    "required_scopes": [
+      "email:send"
+    ],
+    "approved_version": "1.0.0"
+  },
+  "shell.exec": {
+    "server_id": "mock",
+    "tool_name": "shell.exec",
+    "tool_description_hash": "4be6d0658738777652e3323a2f8b21a9912f5ccb4fce460f217d2765458d8f38",
+    "schema_hash": "9ec5c812eacfabf517d761f03f2e53ef2e4807b02087d525d0fbc7d1c4774953",
+    "effect": "code_execution",
+    "required_scopes": [
+      "shell:exec"
+    ],
+    "approved_version": "1.0.0"
+  },
+  "network.fetch": {
+    "server_id": "mock",
+    "tool_name": "network.fetch",
+    "tool_description_hash": "27435b7fcee9d99bdf61625c887b2d35a35e7524956627b9a7024ab0dd99d52d",
+    "schema_hash": "db95f066e6caeb5d3736f92a10abef2684a5b4d08b719fa90bcf32eac1707541",
+    "effect": "read",
+    "required_scopes": [
+      "network:read"
+    ],
+    "approved_version": "1.0.0"
+  }
+}

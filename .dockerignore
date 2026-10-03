@@ -2,6 +2,11 @@
 .tools
 .git
 .env
+.env.*
+auth.json
+demo/jwt-private.pem
+build
+*.egg-info
 models
 artifacts
 data

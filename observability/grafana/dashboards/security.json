@@ -1,8 +1,8 @@
 {
   "uid": "aicl-security",
-  "title": "AI Control Layer — Security",
+  "title": "AI Control Layer — Security Operations",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "5s",
   "timezone": "browser",
   "tags": [
@@ -13,75 +13,244 @@
     "from": "now-15m",
     "to": "now"
   },
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "label": "tenant",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT tenant_id FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "agent",
+        "label": "agent",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT agent_id FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "workflow",
+        "label": "workflow",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT workflow_id FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "operation",
+        "label": "operation",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT operation FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "decision",
+        "label": "decision",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT decision FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "tool",
+        "label": "tool",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT tool FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "semantic_status",
+        "label": "semantic_status",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT semantic_status FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "policy_revision",
+        "label": "policy_revision",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT policy_revision FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "threat_feed_revision",
+        "label": "threat_feed_revision",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT threat_feed_revision FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "control",
+        "label": "control",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT unnest(controls) FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "reason_code",
+        "label": "reason_code",
+        "type": "query",
+        "refresh": 2,
+        "datasource": {
+          "type": "postgres",
+          "uid": "security-audit"
+        },
+        "query": "SELECT DISTINCT unnest(reason_codes) FROM aicl_security_events ORDER BY 1 LIMIT 1000",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "'__all__'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
-      "title": "Protected requests",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
+      "type": "row",
+      "title": "1 — Live overview (filtered audit events)",
+      "collapsed": false,
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 6,
-        "h": 8
-      },
-      "targets": [
-        {
-          "expr": "sum(aicl_requests_total)",
-          "refId": "A",
-          "legendFormat": "{{decision}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
+        "w": 24,
+        "h": 1
       }
     },
     {
       "id": 2,
-      "title": "Allow / redact / block ratio",
-      "type": "piechart",
+      "title": "Protected requests",
+      "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
-        "x": 6,
-        "y": 0,
+        "x": 0,
+        "y": 1,
         "w": 6,
-        "h": 8
+        "h": 6
       },
       "targets": [
         {
-          "expr": "sum by(decision) (aicl_decisions_total{control=\"final\"})",
           "refId": "A",
-          "legendFormat": "{{decision}}"
+          "rawSql": "SELECT count(*) AS requests FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[])",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
@@ -104,28 +273,27 @@
     },
     {
       "id": 3,
-      "title": "Blocked interactions",
+      "title": "ALLOW rate",
       "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
-        "x": 12,
-        "y": 0,
+        "x": 0,
+        "y": 7,
         "w": 6,
-        "h": 8
+        "h": 6
       },
       "targets": [
         {
-          "expr": "sum(aicl_decisions_total{control=\"final\",decision=~\"BLOCK|QUARANTINE|TERMINATE\"})",
           "refId": "A",
-          "legendFormat": "{{decision}}"
+          "rawSql": "SELECT COALESCE(avg((decision='ALLOW')::int),0) AS rate FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[])",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
@@ -148,28 +316,27 @@
     },
     {
       "id": 4,
-      "title": "Request rate",
-      "type": "timeseries",
+      "title": "BLOCK rate",
+      "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
-        "x": 18,
-        "y": 0,
+        "x": 0,
+        "y": 13,
         "w": 6,
-        "h": 8
+        "h": 6
       },
       "targets": [
         {
-          "expr": "sum(rate(aicl_requests_total[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{decision}}"
+          "rawSql": "SELECT COALESCE(avg((decision='BLOCK')::int),0) AS rate FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[])",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
           "color": {
             "mode": "palette-classic"
           }
@@ -192,28 +359,27 @@
     },
     {
       "id": 5,
-      "title": "Prompt injection attempts",
+      "title": "REQUIRE_APPROVAL rate",
       "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 19,
         "w": 6,
-        "h": 8
+        "h": 6
       },
       "targets": [
         {
-          "expr": "sum(aicl_prompt_injection_total)",
           "refId": "A",
-          "legendFormat": "{{decision}}"
+          "rawSql": "SELECT COALESCE(avg((decision='REQUIRE_APPROVAL')::int),0) AS rate FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[])",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
@@ -236,28 +402,27 @@
     },
     {
       "id": 6,
-      "title": "Secret leak attempts blocked",
-      "type": "stat",
+      "title": "Security event timeline",
+      "type": "timeseries",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
-        "x": 6,
-        "y": 8,
-        "w": 6,
-        "h": 8
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 6
       },
       "targets": [
         {
-          "expr": "sum(aicl_secret_blocks_total)",
           "refId": "A",
-          "legendFormat": "{{decision}}"
+          "rawSql": "SELECT $__timeGroupAlias(timestamp,'1m'), decision AS metric, count(*) AS value FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) GROUP BY 1,2 ORDER BY 1",
+          "format": "time_series"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
@@ -280,116 +445,83 @@
     },
     {
       "id": 7,
-      "title": "PII spans redacted",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 8,
-        "w": 6,
-        "h": 8
-      },
-      "targets": [
-        {
-          "expr": "sum(aicl_pii_redactions_total)",
-          "refId": "A",
-          "legendFormat": "{{decision}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 8,
-      "title": "Unauthorized tools",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 18,
-        "y": 8,
-        "w": 6,
-        "h": 8
-      },
-      "targets": [
-        {
-          "expr": "sum(aicl_decisions_total{control=\"tool-authz\",decision=\"BLOCK\"})",
-          "refId": "A",
-          "legendFormat": "{{decision}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
-    },
-    {
-      "id": 9,
-      "title": "Resource credits consumed",
-      "type": "stat",
+      "title": "Active policy and feed revision (global)",
+      "type": "table",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
         "x": 0,
-        "y": 16,
-        "w": 6,
-        "h": 8
+        "y": 31,
+        "w": 24,
+        "h": 6
       },
       "targets": [
         {
-          "expr": "sum(aicl_budget_used_total)",
           "refId": "A",
-          "legendFormat": "{{decision}}"
+          "expr": "aicl_active_revision",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "2 — Attack activity",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 9,
+      "title": "Reasons and source channels",
+      "type": "table",
+      "datasource": {
+        "type": "postgres",
+        "uid": "security-audit"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT unnest(reason_codes) AS reason, source_category, count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) GROUP BY 1,2 ORDER BY 3 DESC LIMIT 30",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
           "color": {
             "mode": "palette-classic"
           }
@@ -412,28 +544,27 @@
     },
     {
       "id": 10,
-      "title": "Budget rejections",
+      "title": "Prompt injection",
       "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
-        "x": 6,
-        "y": 16,
+        "x": 0,
+        "y": 44,
         "w": 6,
-        "h": 8
+        "h": 6
       },
       "targets": [
         {
-          "expr": "sum(aicl_budget_rejections_total)",
           "refId": "A",
-          "legendFormat": "{{decision}}"
+          "rawSql": "SELECT count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) AND 'PROMPT_INJECTION_PATTERN'=ANY(reason_codes)",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
@@ -456,28 +587,27 @@
     },
     {
       "id": 11,
-      "title": "Agent terminations",
+      "title": "Secret leakage",
       "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
-        "x": 12,
-        "y": 16,
+        "x": 0,
+        "y": 50,
         "w": 6,
-        "h": 8
+        "h": 6
       },
       "targets": [
         {
-          "expr": "sum(aicl_agent_terminations_total)",
           "refId": "A",
-          "legendFormat": "{{decision}}"
+          "rawSql": "SELECT count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) AND 'SECRET_DETECTED'=ANY(reason_codes)",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
@@ -500,28 +630,27 @@
     },
     {
       "id": 12,
-      "title": "Memory quarantines",
+      "title": "PII",
       "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
-        "x": 18,
-        "y": 16,
+        "x": 0,
+        "y": 56,
         "w": 6,
-        "h": 8
+        "h": 6
       },
       "targets": [
         {
-          "expr": "sum(aicl_memory_quarantines_total)",
           "refId": "A",
-          "legendFormat": "{{decision}}"
+          "rawSql": "SELECT count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) AND 'PII_DETECTED'=ANY(reason_codes)",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
@@ -544,38 +673,27 @@
     },
     {
       "id": 13,
-      "title": "Latency p50 / p95 / p99",
-      "type": "timeseries",
+      "title": "SSRF",
+      "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
         "x": 0,
-        "y": 24,
+        "y": 62,
         "w": 6,
-        "h": 8
+        "h": 6
       },
       "targets": [
         {
-          "refId": "p50",
-          "expr": "histogram_quantile(0.5, sum by(le) (rate(aicl_request_seconds_bucket[$__rate_interval])))",
-          "legendFormat": "p50"
-        },
-        {
-          "refId": "p95",
-          "expr": "histogram_quantile(0.95, sum by(le) (rate(aicl_request_seconds_bucket[$__rate_interval])))",
-          "legendFormat": "p95"
-        },
-        {
-          "refId": "p99",
-          "expr": "histogram_quantile(0.99, sum by(le) (rate(aicl_request_seconds_bucket[$__rate_interval])))",
-          "legendFormat": "p99"
+          "refId": "A",
+          "rawSql": "SELECT count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) AND 'UNSAFE_URL'=ANY(reason_codes)",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "s",
           "color": {
             "mode": "palette-classic"
           }
@@ -598,28 +716,27 @@
     },
     {
       "id": 14,
-      "title": "Semantic scans by status",
-      "type": "timeseries",
+      "title": "Pre-execution exfiltration",
+      "type": "stat",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
-        "x": 6,
-        "y": 24,
+        "x": 0,
+        "y": 68,
         "w": 6,
-        "h": 8
+        "h": 6
       },
       "targets": [
         {
-          "expr": "sum by(status) (aicl_semantic_scans_total)",
           "refId": "A",
-          "legendFormat": "{{status}}"
+          "rawSql": "SELECT count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) AND 'CONFIDENTIAL_DATA_TO_EXTERNAL_SINK'=ANY(reason_codes)",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
@@ -642,72 +759,39 @@
     },
     {
       "id": 15,
-      "title": "OPA evaluation p95",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
+      "type": "row",
+      "title": "3 — Agent behavior",
+      "collapsed": false,
       "gridPos": {
-        "x": 12,
-        "y": 24,
-        "w": 6,
-        "h": 8
-      },
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.95, sum by(le) (rate(aicl_policy_eval_seconds_bucket[$__rate_interval])))",
-          "refId": "A",
-          "legendFormat": "{{decision}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
+        "x": 0,
+        "y": 74,
+        "w": 24,
+        "h": 1
       }
     },
     {
       "id": 16,
-      "title": "Semantic scan p95",
-      "type": "timeseries",
+      "title": "Tools, effects and decisions",
+      "type": "table",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
-        "x": 18,
-        "y": 24,
-        "w": 6,
-        "h": 8
+        "x": 0,
+        "y": 75,
+        "w": 24,
+        "h": 6
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by(le) (rate(aicl_semantic_scan_seconds_bucket[$__rate_interval])))",
           "refId": "A",
-          "legendFormat": "{{decision}}"
+          "rawSql": "SELECT operation, effect, decision, count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) GROUP BY 1,2,3 ORDER BY 4 DESC",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "s",
           "color": {
             "mode": "palette-classic"
           }
@@ -730,28 +814,27 @@
     },
     {
       "id": 17,
-      "title": "Top blocked tools",
-      "type": "bargauge",
+      "title": "Delegation depths",
+      "type": "barchart",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "postgres",
+        "uid": "security-audit"
       },
       "gridPos": {
         "x": 0,
-        "y": 32,
-        "w": 6,
-        "h": 8
+        "y": 81,
+        "w": 24,
+        "h": 6
       },
       "targets": [
         {
-          "expr": "topk(5, sum by(tool) (aicl_tool_calls_total{decision=\"BLOCK\"}))",
           "refId": "A",
-          "legendFormat": "{{tool}}"
+          "rawSql": "SELECT delegation_depth, count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) GROUP BY 1",
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
@@ -774,33 +857,927 @@
     },
     {
       "id": 18,
-      "title": "Top threat signatures",
-      "type": "bargauge",
+      "title": "Workflow/delegation depth (global)",
+      "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
       "gridPos": {
-        "x": 6,
-        "y": 32,
-        "w": 6,
-        "h": 8
+        "x": 0,
+        "y": 87,
+        "w": 24,
+        "h": 6
       },
       "targets": [
         {
-          "expr": "topk(5, sum by(rule) (aicl_threat_rule_hits_total))",
           "refId": "A",
-          "legendFormat": "{{rule}}"
+          "expr": "sum by(le,kind)(aicl_workflow_depth_bucket)",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
         },
         "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "4 — Semantic security",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 93,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 20,
+      "title": "Semantic status and abstention",
+      "type": "table",
+      "datasource": {
+        "type": "postgres",
+        "uid": "security-audit"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 94,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT semantic_status, risk_band, count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) GROUP BY 1,2",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "title": "Semantic score distribution",
+      "type": "barchart",
+      "datasource": {
+        "type": "postgres",
+        "uid": "security-audit"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 100,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT width_bucket(injection_risk,0,1,10) AS bucket, count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) GROUP BY 1 ORDER BY 1",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "title": "Injection, alignment and exfiltration distributions (global)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 106,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(le,signal)(aicl_risk_score_bucket)",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 23,
+      "title": "Semantic scans / failures (global)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 112,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(status)(rate(aicl_semantic_scans_total[$__rate_interval]))",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 24,
+      "title": "Classifier provider breakdown (global)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 118,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(provider,status)(aicl_semantic_provider_scans_total)",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 25,
+      "type": "row",
+      "title": "5 — Budget and resources",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 124,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 26,
+      "title": "Credits consumed",
+      "type": "stat",
+      "datasource": {
+        "type": "postgres",
+        "uid": "security-audit"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 125,
+        "w": 6,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT COALESCE(sum(credits),0) AS credits FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[])",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 27,
+      "title": "Top workflows by consumption",
+      "type": "table",
+      "datasource": {
+        "type": "postgres",
+        "uid": "security-audit"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 131,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT workflow_id, sum(credits) AS credits FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) GROUP BY 1 ORDER BY 2 DESC LIMIT 20",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 28,
+      "title": "Token usage (global)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 137,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(direction)(rate(aicl_tokens_total[$__rate_interval]))",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 29,
+      "title": "Budget denials (global)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 143,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(aicl_budget_rejections_total[$__rate_interval])",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 30,
+      "type": "row",
+      "title": "6 — Policy and threat feed",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 149,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 31,
+      "title": "Decisions by revision",
+      "type": "table",
+      "datasource": {
+        "type": "postgres",
+        "uid": "security-audit"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 150,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT policy_revision, threat_feed_revision, decision, count(*) AS events FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) GROUP BY 1,2,3",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 32,
+      "title": "Reload successes and failures (global)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 156,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(kind,status)(aicl_config_reloads_total)",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 33,
+      "title": "Threat rule hits (global)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 162,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(rule)(aicl_threat_rule_hits_total)",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 34,
+      "type": "row",
+      "title": "7 — Performance",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 168,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 35,
+      "title": "Stage p50 (global)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 169,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5,sum by(le,stage)(rate(aicl_stage_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 36,
+      "title": "Stage p95 (global)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 175,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95,sum by(le,stage)(rate(aicl_stage_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 37,
+      "title": "Stage p99 (global)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 181,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.99,sum by(le,stage)(rate(aicl_stage_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "{{stage}} {{signal}} {{kind}} {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Global aggregate: tenant/agent/workflow filtering applies to SQL event panels. No per-request, tenant, agent or workflow Prometheus labels."
+    },
+    {
+      "id": 38,
+      "title": "Filtered request latency",
+      "type": "timeseries",
+      "datasource": {
+        "type": "postgres",
+        "uid": "security-audit"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 187,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT $__timeGroupAlias(timestamp,'1m'), percentile_cont(.95) WITHIN GROUP(ORDER BY latency) AS p95_seconds FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 39,
+      "type": "row",
+      "title": "8 — Security event investigation",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 193,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 40,
+      "title": "Recent Security Events",
+      "type": "table",
+      "datasource": {
+        "type": "postgres",
+        "uid": "security-audit"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 194,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT timestamp,tenant_id,agent_id,workflow_id,operation,resource_category,decision,reason_codes,controls,injection_risk,task_alignment,policy_revision,threat_feed_revision,credits,latency,trace_id FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) ORDER BY timestamp DESC LIMIT 250",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open in Tempo",
+                    "targetBlank": true,
+                    "url": "/explore?left={\"datasource\":\"tempo\",\"queries\":[{\"refId\":\"A\",\"queryType\":\"traceql\",\"query\":\"${__value.raw}\"}]}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 41,
+      "type": "row",
+      "title": "9 — Traces",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 200,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 42,
+      "title": "Recent trace IDs (click to investigate)",
+      "type": "table",
+      "datasource": {
+        "type": "postgres",
+        "uid": "security-audit"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 201,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT timestamp,decision,trace_id FROM aicl_security_events WHERE $__timeFilter(timestamp) AND ('__all__' IN (${tenant:sqlstring}) OR tenant_id IN (${tenant:sqlstring})) AND ('__all__' IN (${agent:sqlstring}) OR agent_id IN (${agent:sqlstring})) AND ('__all__' IN (${workflow:sqlstring}) OR workflow_id IN (${workflow:sqlstring})) AND ('__all__' IN (${operation:sqlstring}) OR operation IN (${operation:sqlstring})) AND ('__all__' IN (${decision:sqlstring}) OR decision IN (${decision:sqlstring})) AND ('__all__' IN (${tool:sqlstring}) OR tool IN (${tool:sqlstring})) AND ('__all__' IN (${semantic_status:sqlstring}) OR semantic_status IN (${semantic_status:sqlstring})) AND ('__all__' IN (${policy_revision:sqlstring}) OR policy_revision IN (${policy_revision:sqlstring})) AND ('__all__' IN (${threat_feed_revision:sqlstring}) OR threat_feed_revision IN (${threat_feed_revision:sqlstring})) AND ('__all__' IN (${control:sqlstring}) OR controls && ARRAY[${control:sqlstring}]::text[]) AND ('__all__' IN (${reason_code:sqlstring}) OR reason_codes && ARRAY[${reason_code:sqlstring}]::text[]) ORDER BY timestamp DESC LIMIT 50",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open in Tempo",
+                    "targetBlank": true,
+                    "url": "/explore?left={\"datasource\":\"tempo\",\"queries\":[{\"refId\":\"A\",\"queryType\":\"traceql\",\"query\":\"${__value.raw}\"}]}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "reduceOptions": {

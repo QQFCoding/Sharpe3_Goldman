@@ -1,0 +1,13 @@
+{
+  "revision": "offline-sample-001",
+  "advisories": [
+    {
+      "id": "AICL-SAMPLE-DEPENDENCY-001",
+      "package": "synthetic-vulnerable-package",
+      "affected_versions": ["0.0.1"],
+      "severity": "high",
+      "source": "original synthetic demonstration; not a real CVE",
+      "summary": "Sample advisory for demonstrating offline inventory matching."
+    }
+  ]
+}

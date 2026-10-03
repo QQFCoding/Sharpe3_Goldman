@@ -3,6 +3,7 @@ import json
 import httpx
 
 from app.adapters.base import UpstreamResult
+from app.adapters.spotlighting import spotlight
 
 
 class UpstreamFailure(RuntimeError):
@@ -26,6 +27,7 @@ class OpenAICompatibleAdapter:
 
     async def execute(self, transaction):
         payload = {**transaction.payload, "model": transaction.resource.model, "stream": False}
+        payload["messages"] = spotlight(transaction.payload["messages"])
         result = await bounded_json(
             self.client,
             f"{self.url}/v1/chat/completions",

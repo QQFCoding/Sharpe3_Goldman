@@ -26,6 +26,27 @@
       "title": "Budgets",
       "type": "object"
     },
+    "ClassifierThresholds": {
+      "additionalProperties": false,
+      "properties": {
+        "review_threshold": {
+          "default": 0.3,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Review Threshold",
+          "type": "number"
+        },
+        "block_threshold": {
+          "default": 0.85,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Block Threshold",
+          "type": "number"
+        }
+      },
+      "title": "ClassifierThresholds",
+      "type": "object"
+    },
     "Controls": {
       "additionalProperties": false,
       "properties": {
@@ -40,6 +61,44 @@
         }
       },
       "title": "Controls",
+      "type": "object"
+    },
+    "Declassification": {
+      "additionalProperties": false,
+      "properties": {
+        "sinks": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sinks",
+          "type": "array"
+        },
+        "classifications": {
+          "items": {
+            "enum": [
+              "private",
+              "secret"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Classifications",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "required_scope": {
+          "minLength": 1,
+          "title": "Required Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sinks",
+        "classifications",
+        "required_scope"
+      ],
+      "title": "Declassification",
       "type": "object"
     },
     "Defaults": {
@@ -75,6 +134,61 @@
         }
       },
       "title": "Defaults",
+      "type": "object"
+    },
+    "DelegationPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_attenuation": {
+          "const": true,
+          "default": true,
+          "title": "Capability Attenuation",
+          "type": "boolean"
+        },
+        "max_depth": {
+          "default": 4,
+          "maximum": 16,
+          "minimum": 0,
+          "title": "Max Depth",
+          "type": "integer"
+        },
+        "allowed_peers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Peers",
+          "type": "array"
+        }
+      },
+      "title": "DelegationPolicy",
+      "type": "object"
+    },
+    "InformationFlow": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "untrusted_to_mutating": {
+          "default": "REQUIRE_APPROVAL",
+          "enum": [
+            "BLOCK",
+            "REQUIRE_APPROVAL"
+          ],
+          "title": "Untrusted To Mutating",
+          "type": "string"
+        },
+        "declassification": {
+          "items": {
+            "$ref": "#/$defs/Declassification"
+          },
+          "title": "Declassification",
+          "type": "array"
+        }
+      },
+      "title": "InformationFlow",
       "type": "object"
     },
     "InjectionConfig": {
@@ -163,6 +277,28 @@
         }
       },
       "title": "Limits",
+      "type": "object"
+    },
+    "McpPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "manifest_pinning": {
+          "default": true,
+          "title": "Manifest Pinning",
+          "type": "boolean"
+        },
+        "manifest_change": {
+          "default": "BLOCK",
+          "enum": [
+            "WARN",
+            "REQUIRE_APPROVAL",
+            "BLOCK"
+          ],
+          "title": "Manifest Change",
+          "type": "string"
+        }
+      },
+      "title": "McpPolicy",
       "type": "object"
     },
     "MemoryPolicy": {
@@ -398,6 +534,16 @@
           "title": "Always Scan",
           "type": "boolean"
         },
+        "uncertain_read": {
+          "default": "REQUIRE_APPROVAL",
+          "enum": [
+            "WARN",
+            "ALLOW",
+            "REQUIRE_APPROVAL"
+          ],
+          "title": "Uncertain Read",
+          "type": "string"
+        },
         "review_threshold": {
           "default": 0.5,
           "maximum": 1,
@@ -411,6 +557,20 @@
           "minimum": 0,
           "title": "Block Threshold",
           "type": "number"
+        },
+        "provider_thresholds": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ClassifierThresholds"
+          },
+          "propertyNames": {
+            "enum": [
+              "deberta",
+              "prompt_guard",
+              "ollama"
+            ]
+          },
+          "title": "Provider Thresholds",
+          "type": "object"
         }
       },
       "title": "SemanticConfig",
@@ -449,6 +609,49 @@
         }
       },
       "title": "SizeLimits",
+      "type": "object"
+    },
+    "TaskAlignment": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "approve_below": {
+          "default": 0.6,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Approve Below",
+          "type": "number"
+        },
+        "block_below": {
+          "default": 0.25,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Block Below",
+          "type": "number"
+        },
+        "minimum_confidence": {
+          "default": 0.7,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Confidence",
+          "type": "number"
+        },
+        "uncertain_read": {
+          "default": "WARN",
+          "enum": [
+            "WARN",
+            "ALLOW",
+            "REQUIRE_APPROVAL"
+          ],
+          "title": "Uncertain Read",
+          "type": "string"
+        }
+      },
+      "title": "TaskAlignment",
       "type": "object"
     },
     "ThreatConfig": {
@@ -572,6 +775,18 @@
     },
     "resource_costs": {
       "$ref": "#/$defs/ResourceCosts"
+    },
+    "information_flow": {
+      "$ref": "#/$defs/InformationFlow"
+    },
+    "task_alignment": {
+      "$ref": "#/$defs/TaskAlignment"
+    },
+    "mcp": {
+      "$ref": "#/$defs/McpPolicy"
+    },
+    "delegation": {
+      "$ref": "#/$defs/DelegationPolicy"
     }
   },
   "required": [

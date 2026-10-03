@@ -76,16 +76,24 @@ budget_action(code) := "TERMINATE" if {
 
 semantic_score := max([input.transaction.risk.prompt_injection,
                        input.transaction.risk.data_exfiltration, input.transaction.risk.tool_misuse])
+semantic_limits := object.get(object.get(input.policy.controls.prompt_injection.semantic, "provider_thresholds", {}),
+    object.get(input, "semantic_provider", "none"), input.policy.controls.prompt_injection.semantic)
 
 violations contains {"code": "SEMANTIC_HIGH_RISK", "control": "semantic", "action": "BLOCK"} if {
     input.transaction.risk.semantic_status == "ok"
-    semantic_score >= input.policy.controls.prompt_injection.semantic.block_threshold
+    semantic_score >= semantic_limits.block_threshold
 }
 
-violations contains {"code": "SEMANTIC_REVIEW_REQUIRED", "control": "semantic", "action": "REQUIRE_APPROVAL"} if {
+semantic_review_action := object.get(input.policy.controls.prompt_injection.semantic, "uncertain_read", "REQUIRE_APPROVAL") if {
+    input.transaction.effect == "read"
+} else := "REQUIRE_APPROVAL"
+
+violations contains {"code": "SEMANTIC_REVIEW_REQUIRED", "control": "semantic", "action": action} if {
     input.transaction.risk.semantic_status == "ok"
-    semantic_score >= input.policy.controls.prompt_injection.semantic.review_threshold
+    semantic_score >= semantic_limits.review_threshold
     not input.transaction.context.approval_verified
+    action := semantic_review_action
+    action != "ALLOW"
 }
 
 violations contains {"code": "SEMANTIC_UNAVAILABLE", "control": "semantic", "action": "BLOCK"} if {

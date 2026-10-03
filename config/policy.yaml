@@ -1,6 +1,6 @@
 apiVersion: aicl/v1
 metadata:
-  revision: dev-001
+  revision: phase2-001
 mode: enforce
 defaults:
   decision: deny
@@ -22,7 +22,13 @@ controls:
   prompt_injection:
     enabled: true
     deterministic_enabled: true
-    semantic: {enabled: true, always_scan: false, review_threshold: 0.50, block_threshold: 0.85}
+    semantic:
+      enabled: true
+      always_scan: false
+      review_threshold: 0.50
+      block_threshold: 0.85
+      provider_thresholds:
+        deberta: {review_threshold: 0.30, block_threshold: 0.9999991655349731}
 tools:
   default: deny
   allow: [github.search, github.read_issue, filesystem.read, network.fetch]
@@ -62,3 +68,20 @@ resource_costs:
     'qwen3:4b': {per_1000_input_tokens: 1, per_1000_output_tokens: 2}
   tools: {github.search: 1, shell.exec: 20}
   default_tool: 1
+information_flow:
+  enabled: true
+  untrusted_to_mutating: REQUIRE_APPROVAL
+  declassification: []
+task_alignment:
+  enabled: true
+  approve_below: 0.60
+  block_below: 0.25
+  minimum_confidence: 0.70
+  uncertain_read: WARN
+mcp:
+  manifest_pinning: true
+  manifest_change: BLOCK
+delegation:
+  capability_attenuation: true
+  max_depth: 4
+  allowed_peers: [demo.echo, demo-child]

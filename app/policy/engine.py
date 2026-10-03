@@ -53,7 +53,7 @@ class OpaEngine:
     async def evaluate(
         self, tx: SecurityTransaction, snapshot: PolicySnapshot, facts: dict
     ) -> DecisionResult:
-        data = {"transaction": tx.model_dump(mode="json"), "policy": snapshot.policy.model_dump(), **facts}
+        data = {"transaction": tx.model_dump(mode="json"), "policy": snapshot.policy.model_dump(mode="json"), **facts}
         try:
             async with self._slots:
                 if self.binary:

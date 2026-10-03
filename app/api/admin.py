@@ -23,14 +23,19 @@ async def policy(request: Request):
 @router.post("/policy/reload")
 @router.post("/threat-feed/reload")
 async def reload_policy(request: Request):
-    store = request.app.state.runtime.policies
+    runtime = request.app.state.runtime
+    store = runtime.policies
+    kind = "threat_feed" if "threat-feed" in request.url.path else "policy"
     try:
         snapshot = await store.reload()
+        runtime.metrics.reloads.labels(kind, "success").inc()
+        runtime.metrics.revisions(snapshot)
         return {
             "policy_revision": snapshot.policy.metadata.revision,
             "threat_feed_revision": snapshot.feed.revision,
         }
     except Exception:
+        runtime.metrics.reloads.labels(kind, "failure").inc()
         # Validation messages can contain values from the configuration. Return safe diagnostics.
         return JSONResponse(
             {"error": "POLICY_RELOAD_INVALID", "active_revision": store.active.policy.metadata.revision},
@@ -62,6 +67,9 @@ async def approve(body: ApprovalRequest, request: Request):
     identity = candidates[0]
     tx = runtime.pipeline.prepare(body.request, identity)
     tx.payload = canonicalize(tx.payload)
+    if tx.operation in {"mcp_tool_call", "tool_call"}:
+        await runtime.pipeline.manifests.inspect(tx, runtime.pipeline.adapters.get("mcp"),
+            runtime.policies.active.policy.mcp)
     token = await runtime.approvals.issue(
         approval_digest(tx, runtime.policies.active.policy.metadata.revision)
     )

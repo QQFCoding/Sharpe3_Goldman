@@ -4,6 +4,8 @@ A local-first enforcement gateway for LLM requests, agent messages, MCP/tool cal
 
 The demo needs no paid API or model download. It uses safe mock services: file, shell, GitHub, network, and email MCP tools only return simulated results. The semantic providers are optional real integrations, not heuristic scanners presented as AI.
 
+Phase 2 adds provenance labels, pre-execution information-flow rules, immutable workflow intent, task-alignment review, attenuated agent delegation, MCP manifest pins, RS256 JWT verification, and a filterable SOC dashboard. See [the hardening report](docs/PHASE2.md) for the security contract, measured results and remaining boundaries, and [the measurement summary](docs/measurements.json) for reproducible numbers.
+
 ## Run locally
 
 Python 3.12+ is required. From this directory:
@@ -38,7 +40,7 @@ python demo/agent.py
 docker compose ps
 ```
 
-Compose runs the gateway, OPA, Redis, PostgreSQL, mock LLM, mock MCP, Prometheus, Grafana, OpenTelemetry Collector, and Tempo. Redis and PostgreSQL persist in project-scoped volumes. Grafana automatically provisions the Security dashboard and both data sources.
+Compose runs the gateway, OPA, Redis, PostgreSQL, mock LLM, mock MCP, Prometheus, Grafana, OpenTelemetry Collector, and Tempo. Redis and PostgreSQL persist in project-scoped volumes. Grafana automatically provisions the Security dashboard, Prometheus, Tempo, and a restricted PostgreSQL audit data source. After editing Rego files, restart OPA; `make up` does this automatically.
 
 | Service | Local address | Demo authentication |
 |---|---|---|
@@ -141,10 +143,12 @@ The default is `AICL_SEMANTIC_PROVIDER=none` and `semantic_failure: block_high_r
 For [Llama Prompt Guard 2 86M](https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M): install `.[semantic]`, obtain access to its gated weights and accept its license, then download an explicitly reviewed model commit:
 
 ```sh
-python scripts/download_models.py --revision <hugging-face-commit-sha>
+python scripts/download_models.py --model prompt_guard --revision <hugging-face-commit-sha>
 ```
 
 Set `AICL_SEMANTIC_PROVIDER=prompt_guard` and `AICL_PROMPT_GUARD_PATH=./models/prompt-guard`. Loading is local-only. The provider scans overlapping 512-token windows and rejects incompatible classifier shapes. Timed-out inference remains a single background job; subsequent requests fail closed while it is busy.
+
+The reproducible public alternative is ProtectAI DeBERTa v2. Install optional dependencies with `python scripts/bootstrap.py --semantic`, then run `make semantic-eval`. This explicit evaluation command downloads checksum-verified pinned weights if missing; normal startup and tests do not download them. For the native launcher, set `AICL_SEMANTIC_PROVIDER=deberta` and `AICL_DEBERTA_PATH=./models/deberta`. The default Docker image excludes the heavy semantic dependencies and weights; build a semantic image and mount the reviewed weights before using this provider in Docker. The small held-out evaluation reached 80% accuracy and 60% recall; deterministic information-flow controls remain essential.
 
 For optional Ollama:
 
@@ -168,6 +172,8 @@ Audit events store hashes instead of prompts, both authorization and final decis
 Prometheus exposes requests, exclusive final decisions and triggering controls, OPA/semantic/request latency histograms, injections, secret blocks, PII redactions, tools, budget use/rejections, terminations, quarantines, and threat-rule hits. Grafana shows decision ratios, security counters, budget use, p50/p95/p99 latency, and top blocked tools/signatures. Tempo receives trace spans through the collector. Traces contain identifiers and decisions, never prompts or arguments.
 
 `python scripts/benchmark.py` writes `artifacts/benchmark.json`. The measurement includes HTTP, OPA, and the safe mock upstream; it is not a real-model latency benchmark. `make test` runs actual Rego tests, Ruff, and Python tests including concurrency tests against the Redis Lua scripts via fakeredis. `python scripts/compose_smoke.py` checks the running Compose stack, PostgreSQL persistence, Redis state, metrics scraping, and Grafana provisioning.
+
+Phase 2 evaluation commands are `make redteam`, `make redteam-semantic`, `make benchmark-fast`, `make benchmark-semantic`, `make benchmark-concurrency`, and `make security-scan`. All attack tools are inert fixtures. `make demo` runs the existing demo and the Phase 2 enforcement examples; `python scripts/grafana_validate.py` executes the provisioned SQL panels, filters, and linked traces against the live stack.
 
 ## Deployment boundaries
 

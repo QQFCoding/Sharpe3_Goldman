@@ -7,6 +7,7 @@ COPY --chown=aicl:aicl app app
 COPY --chown=aicl:aicl demo demo
 COPY --chown=aicl:aicl config config
 COPY --chown=aicl:aicl opa opa
+COPY --chown=aicl:aicl observability/postgres observability/postgres
 USER aicl
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

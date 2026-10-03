@@ -7,6 +7,7 @@ from app.semantic.base import SemanticRisk, SemanticUnavailable
 
 class PromptGuardProvider:
     """Prompt Guard 2 binary classifier with overlapping windows; local weights only."""
+    provider_id = "prompt_guard"
 
     def __init__(self, path: str):
         self.path = path

@@ -11,3 +11,16 @@ datasources:
     type: tempo
     access: proxy
     url: http://tempo:3200
+  - name: Security Audit
+    uid: security-audit
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: aicl_grafana
+    jsonData:
+      database: aicl
+      sslmode: disable
+      postgresVersion: 1700
+      timescaledb: false
+    secureJsonData:
+      password: local-grafana-password

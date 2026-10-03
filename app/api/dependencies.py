@@ -8,12 +8,14 @@ from app.core.decision import Decision
 def bearer(request: Request) -> str | None:
     header = request.headers.get("authorization", "")
     scheme, _, value = header.partition(" ")
-    return value if scheme.lower() == "bearer" and len(value) <= 1024 else None
+    return value if scheme.lower() == "bearer" and len(value) <= 8192 else None
 
 
 async def principal(request: Request):
     runtime = request.app.state.runtime
     identity = runtime.auth.authenticate(bearer(request))
+    if identity is None:
+        identity = await runtime.delegations.authenticate(bearer(request))
     if identity is None:
         result = await runtime.reject("UNAUTHENTICATED", "authentication")
         raise HTTPException(status_code=401, detail=result.model_dump(mode="json"))

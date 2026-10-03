@@ -5,6 +5,7 @@ import regex
 import yaml
 from pydantic import Field, field_validator, model_validator
 
+from app.controls.discussion import security_discussion
 from app.core.transaction import Finding, SecurityTransaction, StrictModel, text_leaves
 
 
@@ -19,6 +20,7 @@ class ThreatRule(StrictModel):
     hashes: list[str] = Field(default_factory=list)
     mcp_servers: list[str] = Field(default_factory=list)
     action: Literal["BLOCK", "WARN", "QUARANTINE"] = "BLOCK"
+    allow_security_discussion: bool = False
 
     @model_validator(mode="after")
     def valid_regex(self):
@@ -65,7 +67,7 @@ class ThreatFeed(StrictModel):
                 for pkg, versions in rule.packages.items()
             )
             try:
-                matched |= any(
+                matched |= not (rule.allow_security_discussion and security_discussion(tx)) and any(
                     regex.search(pattern, text, timeout=0.02)
                     for _, text in text_leaves(tx.payload)
                     for pattern in rule.regex

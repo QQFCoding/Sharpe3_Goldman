@@ -25,7 +25,7 @@ MEMORY_WRITE_SCHEMA = obj(
     {
         "content": {"type": "string", "minLength": 1, "maxLength": 65536},
         "source": {"enum": ["application", "web", "external", "agent"]},
-        "classification": {"enum": ["public", "internal", "restricted"]},
+        "classification": {"enum": ["public", "internal", "restricted", "private", "secret"]},
         "ttl_seconds": {"type": "integer", "minimum": 1},
     },
     ["content", "source"],

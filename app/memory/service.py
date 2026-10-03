@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from pydantic import Field
 
+from app.core.labels import DataSecurityLabel
 from app.core.transaction import StrictModel
 
 
@@ -20,6 +21,7 @@ class MemoryRecord(StrictModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime
     quarantined: bool = False
+    data_security: DataSecurityLabel | None = None
 
 
 class MemoryService:
@@ -86,6 +88,8 @@ class MemoryService:
             + timedelta(seconds=min(tx.payload.get("ttl_seconds", max_ttl), max_ttl)),
             quarantined=quarantined,
             security_labels=["prompt_injection"] if quarantined else [],
+            data_security=DataSecurityLabel.model_validate(tx.metadata["data_label"])
+                if "data_label" in tx.metadata else None,
         )
         await self.save(record)
         return record

@@ -1,5 +1,6 @@
 import re
 
+from app.controls.discussion import security_discussion
 from app.core.transaction import Finding, SecurityTransaction, text_leaves
 
 PATTERNS = [
@@ -12,6 +13,8 @@ PATTERNS = [
 
 
 def inspect(tx: SecurityTransaction) -> list[Finding]:
+    if security_discussion(tx):
+        return []
     for _, text in text_leaves(tx.payload):
         if any(re.search(pattern, text) for pattern in PATTERNS):
             tx.risk.prompt_injection = 0.95

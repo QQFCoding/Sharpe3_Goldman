@@ -35,3 +35,4 @@ class GatewayResult(StrictModel):
     output: Any = None
     input_security: DecisionResult | None = None
     budget: dict[str, Any] = Field(default_factory=dict)
+    data_security: dict[str, Any] = Field(default_factory=dict)

@@ -24,6 +24,12 @@ class AuditEvent(StrictModel):
     budget_consumed: float
     latencies: dict[str, float]
     prompt_hash: str
+    workflow_id: str = ""
+    effect: str = "read"
+    resource_category: str = "other"
+    data_security: dict[str, Any] = Field(default_factory=dict)
+    delegation_depth: int = 0
+    source_category: str = "direct_user_injection"
 
     @classmethod
     def from_transaction(
@@ -51,6 +57,12 @@ class AuditEvent(StrictModel):
             latencies=latencies,
             prompt_hash=prompt_hash,
             phase=phase,
+            workflow_id="sha256:" + hashlib.sha256(tx.context.workflow.workflow_id.encode()).hexdigest(),
+            effect=tx.effect,
+            resource_category=tx.operation.value,
+            data_security=tx.metadata.get("data_label", {}),
+            delegation_depth=tx.principal.delegation_depth,
+            source_category=tx.metadata.get("source_category", "direct_user_injection"),
         )
 
 
@@ -67,6 +79,8 @@ class AuditRepository:
                     event_id BIGSERIAL PRIMARY KEY, request_id TEXT NOT NULL,
                     timestamp TIMESTAMPTZ NOT NULL, event JSONB NOT NULL)""")
                 await conn.execute("CREATE INDEX IF NOT EXISTS aicl_audit_request ON aicl_audit(request_id)")
+                from app.settings import ROOT
+                await conn.execute((ROOT / "observability/postgres/events.sql").read_text(encoding="utf-8"))
 
     async def append(self, event: AuditEvent):
         body = event.model_dump(mode="json")

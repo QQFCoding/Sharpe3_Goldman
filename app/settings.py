@@ -22,8 +22,13 @@ class Settings(BaseSettings):
     mcp_output_trust: Literal["trusted", "untrusted"] | None = None
     ollama_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen3:4b"
-    semantic_provider: Literal["none", "prompt_guard", "ollama"] = "none"
+    semantic_provider: Literal["none", "prompt_guard", "deberta", "ollama"] = "none"
     prompt_guard_path: str = str(ROOT / "models/prompt-guard")
+    deberta_path: str = str(ROOT / "models/deberta")
+    alignment_provider: Literal["none", "ollama"] = "none"
+    jwt_jwks_path: Path | None = None
+    jwt_issuer: str = "http://aicl.local/issuer"
+    jwt_audience: str = "ai-control-layer"
     semantic_timeout: float = Field(default=5, gt=0, le=60)
     upstream_timeout: float = Field(default=15, gt=0, le=120)
     otlp_endpoint: str | None = None

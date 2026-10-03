@@ -137,8 +137,10 @@ def main():
         dashboard = eventually(
             lambda: grafana.get("/api/dashboards/uid/aicl-security").json().get("dashboard")
         )
-        assert len(dashboard["panels"]) == 18
-        assert {s["uid"] for s in grafana.get("/api/datasources").json()} == {"prometheus", "tempo"}
+        assert len([p for p in dashboard["panels"] if p["type"] == "row"]) == 9
+        assert len(dashboard["templating"]["list"]) == 11
+        assert {s["uid"] for s in grafana.get("/api/datasources").json()} == {"prometheus", "tempo", "security-audit"}
+        assert grafana.get("/api/datasources/uid/security-audit/health").status_code == 200
         trace_id = next(event["trace_id"] for event in audit if event["phase"] == "final")
         eventually(
             lambda: (
@@ -150,7 +152,7 @@ def main():
             )
         )
     print(
-        f"Compose smoke passed: PostgreSQL {audit_count} audit events/{memory_count} memories, Redis Lua, Prometheus, 18 Grafana panels."
+        f"Compose smoke passed: PostgreSQL {audit_count} audit events/{memory_count} memories, Redis Lua, Prometheus, Grafana V2 filters/SQL and Tempo."
     )
 
 

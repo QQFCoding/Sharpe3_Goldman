@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.api import admin, chat, health, metrics
+from app.api import admin, chat, health, metrics, workflows
 from app.api.dependencies import bearer
 from app.runtime import Runtime
 from app.settings import Settings
@@ -78,7 +78,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     application = FastAPI(title="AI Control Layer", version="0.1.0", lifespan=lifespan)
     application.add_middleware(BodyLimitMiddleware, runtime_app=application, limit=settings.max_body_bytes)
-    for router in (health.router, chat.router, admin.router, metrics.router):
+    for router in (health.router, chat.router, admin.router, metrics.router, workflows.router):
         application.include_router(router)
 
     @application.exception_handler(HTTPException)

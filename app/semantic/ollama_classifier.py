@@ -7,6 +7,7 @@ from app.semantic.base import SemanticRisk, SemanticUnavailable
 
 
 class OllamaSecurityProvider:
+    provider_id = "ollama"
     def __init__(self, client: httpx.AsyncClient, url: str, model: str):
         self.client, self.url, self.model = client, url, model
 

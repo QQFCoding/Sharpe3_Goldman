@@ -19,6 +19,8 @@ DEMO_SCOPES = [
     "memory:write",
     "memory:trusted_write",
     "agents:message",
+    "agents:delegate",
+    "workflow:intent",
 ]
 
 
@@ -31,7 +33,9 @@ class Authenticator:
                 ("demo-other-token", "tenant-b", "bob"),
             ]:
                 self.records[hashlib.sha256(token.encode()).hexdigest()] = Principal(
-                    subject=subject, tenant_id=tenant, agent_id="demo-agent", scopes=DEMO_SCOPES
+                    subject=subject, tenant_id=tenant, agent_id="demo-agent", scopes=DEMO_SCOPES,
+                    capabilities=["github.search", "github.read_issue", "github.create_issue", "filesystem.read",
+                                  "filesystem.write", "email.send", "network.fetch", "demo.echo", "demo-child"]
                 )
         if auth_file:
             for record in json.loads(auth_file.read_text(encoding="utf-8")):
@@ -41,11 +45,13 @@ class Authenticator:
                 self.records[digest] = Principal.model_validate(record["principal"])
         if not self.records:
             raise ValueError("No configured identities")
+        self.jwt = None
 
     def authenticate(self, token: str | None) -> Principal | None:
         if not token:
             return None
-        return self.records.get(hashlib.sha256(token.encode()).hexdigest())
+        identity = self.records.get(hashlib.sha256(token.encode()).hexdigest())
+        return identity.model_copy(deep=True) if identity else (self.jwt.authenticate(token) if self.jwt else None)
 
 
 def approval_digest(tx: SecurityTransaction, revision: str) -> str:
@@ -62,6 +68,7 @@ def approval_digest(tx: SecurityTransaction, revision: str) -> str:
                 "payload": tx.payload,
                 "workflow": tx.context.workflow.model_dump(),
                 "revision": revision,
+                "manifest_hash": tx.metadata.get("manifest_hash"),
             }
         )
     ).hexdigest()
