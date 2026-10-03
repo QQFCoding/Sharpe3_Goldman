@@ -4,8 +4,10 @@ from app.adapters.spotlighting import spotlight
 
 
 class OllamaAdapter:
-    def __init__(self, client, url, timeout=15):
+    def __init__(self, client, url, timeout=15, response_format=None, options=None):
         self.client, self.url, self.timeout = client, url, timeout
+        self.response_format = response_format
+        self.options = options or {}
 
     async def execute(self, transaction):
         result = await bounded_json(
@@ -15,7 +17,9 @@ class OllamaAdapter:
                 "model": transaction.resource.model,
                 "messages": spotlight(transaction.payload["messages"]),
                 "stream": False,
-                "options": {"num_predict": transaction.budget.max_output_tokens},
+                "think": False,
+                **({"format": self.response_format} if self.response_format else {}),
+                "options": {**self.options, "num_predict": transaction.budget.max_output_tokens},
             },
             transaction.metadata["response_limit"] + 4096,
             self.timeout,

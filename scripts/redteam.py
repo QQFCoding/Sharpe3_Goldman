@@ -130,8 +130,9 @@ async def run(args):
                 (r["classifier_score"] is not None and r["classifier_score"] >= threshold)) if args.semantic else None,
             "full_detection": fraction(attacks, lambda r: not r["candidate_reached_fixture"]),
             "full_sink_enforcement": fraction(attacks, lambda r: not r["prohibited_sink_executed"]),
-            "task_alignment_only": {"status": "not_measured", "command": "python scripts/task_alignment_eval.py",
-                "reason": "Requires a running real local Ollama reviewer; no fabricated scores."}},
+            "task_alignment_only": {"status": "separate_evaluation", "command": "python scripts/task_alignment_eval.py",
+                "report": "artifacts/task-alignment-eval.json",
+                "reason": "Reviewer-only metrics use their own labelled corpus and are not end-to-end redteam scores."}},
         "by_category": {category: {"samples": len([r for r in results if r["category"] == category]),
             "malicious_fixture_reach_rate": fraction([r for r in attacks if r["category"] == category], lambda r: r["candidate_reached_fixture"])}
             for category in sorted({r["category"] for r in results})}, "results": results}

@@ -40,7 +40,7 @@ def inspect(tx: SecurityTransaction) -> list[Finding]:
         schema = CHAT_SCHEMA
     elif tx.operation in {Operation.TOOL_CALL, Operation.MCP_TOOL_CALL, Operation.API_CALL}:
         tool = TOOLS.get(tx.resource.name if tx.resource else "")
-        schema = tool.schema if tool else None
+        schema = tx.metadata.get("input_schema") or (tool.schema if tool else None)
     elif tx.operation == Operation.MEMORY_WRITE:
         schema = MEMORY_WRITE_SCHEMA
     elif tx.operation == Operation.MEMORY_READ:
@@ -57,7 +57,8 @@ def inspect(tx: SecurityTransaction) -> list[Finding]:
 def inspect_output(tx: SecurityTransaction, output) -> list[Finding]:
     if tx.operation in {Operation.TOOL_CALL, Operation.MCP_TOOL_CALL, Operation.API_CALL}:
         tool = TOOLS.get(tx.resource.name if tx.resource else "")
-        if tool and not Draft202012Validator(tool.output_schema).is_valid(output):
+        output_schema = tx.metadata.get("output_schema") or (tool.output_schema if tool else None)
+        if output_schema and not Draft202012Validator(output_schema).is_valid(output):
             return [Finding(code="OUTPUT_SCHEMA_INVALID", control="output-schema")]
     elif tx.operation == Operation.LLM_REQUEST:
         if not Draft202012Validator(obj({"content": {"type": "string"}}, ["content"])).is_valid(output):

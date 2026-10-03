@@ -1,6 +1,6 @@
 apiVersion: aicl/v1
 metadata:
-  revision: phase2-001
+  revision: phase3-001
 mode: enforce
 defaults:
   decision: deny
@@ -31,8 +31,8 @@ controls:
         deberta: {review_threshold: 0.30, block_threshold: 0.9999991655349731}
 tools:
   default: deny
-  allow: [github.search, github.read_issue, filesystem.read, network.fetch]
-  require_approval: [github.create_issue, filesystem.write, email.send]
+  allow: [github.search, github.read_issue, filesystem.read, network.fetch, 'trusted-internal::github.search', 'trusted-internal::filesystem.read', 'untrusted-external::github.search', 'untrusted-external::network.fetch']
+  require_approval: [github.create_issue, filesystem.write, email.send, 'trusted-internal::github.create_issue']
   deny: [shell.exec, github.delete_repository]
 memory:
   enforce_tenant_boundary: true

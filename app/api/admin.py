@@ -1,7 +1,8 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
+from pydantic import Field
 
 from app.api.dependencies import admin
 from app.controls.base import canonicalize
@@ -9,6 +10,42 @@ from app.core.auth import approval_digest
 from app.core.transaction import OperationRequest, StrictModel
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(admin)])
+
+
+@router.get("/mcp/registry")
+async def registry(request: Request):
+    return {"findings": request.app.state.runtime.pipeline.manifests.analyze()}
+
+
+class ExecutionResolution(StrictModel):
+    subject: str
+    tenant_id: str
+    execution_id: str = Field(min_length=1, max_length=128)
+    disposition: Literal["COMPLETED", "FAILED"]
+    evidence: str = Field(min_length=10, max_length=8192)
+
+
+@router.post("/executions/resolve")
+async def resolve_execution(body: ExecutionResolution, request: Request):
+    import hashlib
+
+    from app.audit.repository import AuditEvent
+    from app.core.decision import Decision, DecisionResult
+    from app.core.transaction import Operation, Principal, SecurityTransaction
+    runtime = request.app.state.runtime
+    identity = Principal(subject=body.subject, tenant_id=body.tenant_id)
+    tx = SecurityTransaction(principal=identity, operation=Operation.API_CALL, payload={})
+    tx.metadata["execution_id"] = body.execution_id
+    snapshot = runtime.policies.active
+    decision = DecisionResult(decision=Decision.ALLOW, reason_codes=["OPERATOR_EXECUTION_RESOLUTION"],
+        controls=["execution-operator"], policy_revision=snapshot.policy.metadata.revision,
+        threat_feed_revision=snapshot.feed.revision, request_id=tx.request_id)
+    await runtime.audit.append(AuditEvent.from_transaction(tx, decision,
+        hashlib.sha256(body.evidence.encode()).hexdigest(), "0" * 32, {}, phase="operator_resolution_authorized"))
+    try:
+        return await runtime.executions.resolve(identity, body.execution_id, body.disposition)
+    except (ValueError, RuntimeError):
+        return JSONResponse({"error": "EXECUTION_RESOLUTION_REFUSED"}, status_code=409)
 
 
 @router.get("/policy")
@@ -68,7 +105,7 @@ async def approve(body: ApprovalRequest, request: Request):
     tx = runtime.pipeline.prepare(body.request, identity)
     tx.payload = canonicalize(tx.payload)
     if tx.operation in {"mcp_tool_call", "tool_call"}:
-        await runtime.pipeline.manifests.inspect(tx, runtime.pipeline.adapters.get("mcp"),
+        await runtime.pipeline.manifests.inspect(tx, runtime.pipeline.tool_adapter(tx),
             runtime.policies.active.policy.mcp)
     token = await runtime.approvals.issue(
         approval_digest(tx, runtime.policies.active.policy.metadata.revision)

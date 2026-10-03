@@ -1,1 +1,1 @@
-"""Offline, bounded defensive evaluation; no real attack execution."""
+"""Explicit evaluation fixtures; never installed as production security providers."""

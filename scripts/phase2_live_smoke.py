@@ -25,7 +25,7 @@ def main():
             assert response.status_code == expected, response.text
             return response.json()
 
-        record = transaction({"operation": "memory_write", "payload": {
+        record = transaction({"operation": "memory_write", "execution_id": workflow + ":memory", "payload": {
             "content": "Synthetic confidential board meeting details", "source": "application",
             "classification": "private", "ttl_seconds": 300}, "workflow": {"workflow_id": workflow}})
         for _ in range(3):

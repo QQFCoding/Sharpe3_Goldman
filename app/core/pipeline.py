@@ -11,8 +11,10 @@ from app.controls import pii, prompt_patterns, schema, secrets
 from app.controls.base import canonicalize, encoded, transform
 from app.controls.information_flow import facts as flow_facts
 from app.controls.ssrf import NetworkGuard
+from app.controls.tool_firewall import input_minimize, output_sanitize
 from app.core.auth import approval_digest
 from app.core.decision import PERMITTED, Decision, GatewayResult
+from app.core.executions import ExecutionStore, ReplayRejected
 from app.core.labels import DataSecurityLabel, source_label
 from app.core.transaction import (
     Effect,
@@ -49,6 +51,12 @@ class Pipeline:
         self.mcp_output_trust = "untrusted"
         self.semantic_timeout, self.upstream_timeout = semantic_timeout, upstream_timeout
         self.workflows = self.manifests = self.alignment = None
+        self.executions = ExecutionStore()
+        self.tools = dict(TOOLS)
+        self.values = None
+        self.public_actions = {}
+        self.trusted_system_hashes = set()
+        self.require_execution_id = False
 
     async def timed(self, tx, stage, awaitable):
         started = time.perf_counter()
@@ -67,10 +75,10 @@ class Pipeline:
         if request.operation == Operation.LLM_REQUEST and resource is None:
             resource = Resource(name="demo", provider="mock", model="demo")
         if request.operation in {Operation.TOOL_CALL, Operation.MCP_TOOL_CALL, Operation.API_CALL}:
-            tool = TOOLS.get(resource.name if resource else "")
+            tool = self.tools.get(resource.name if resource else "")
             effect = tool.effect if tool else Effect.READ
             if resource:
-                resource.mcp_server = "mock"  # Endpoint and provenance are never caller-controlled.
+                resource.mcp_server = tool.server_id if tool else "mock"
         if request.operation in {Operation.MEMORY_READ, Operation.MEMORY_WRITE}:
             effect = Effect.WRITE if request.operation == Operation.MEMORY_WRITE else Effect.READ
             resource = resource or Resource(
@@ -90,7 +98,7 @@ class Pipeline:
             if isinstance(message, dict)
         ):
             context.source, context.source_trust = "retrieved", "untrusted"
-        return SecurityTransaction(
+        transaction = SecurityTransaction(
             principal=principal,
             operation=request.operation,
             resource=resource,
@@ -98,6 +106,17 @@ class Pipeline:
             context=context,
             payload=request.payload.copy(),
         )
+        transaction.metadata["requested_execution_id"] = request.execution_id
+        if request.operation == Operation.LLM_REQUEST:
+            transaction.metadata["semantic_trusted_paths"] = [
+                ["messages", i, "content"] for i, message in enumerate(request.payload.get("messages", []))
+                if isinstance(message, dict) and message.get("role") == "system" and isinstance(message.get("content"), str)
+                and hashlib.sha256(message["content"].encode()).hexdigest() in self.trusted_system_hashes]
+        if request.operation in {Operation.TOOL_CALL, Operation.MCP_TOOL_CALL, Operation.API_CALL} and tool:
+            transaction.metadata.update(input_schema=tool.schema, output_schema=tool.output_schema,
+                registered_tool_name=tool.name, external_sink=tool.external_sink,
+                remote_tool_name=tool.remote_name or tool.name, required_scopes=list(tool.required_scopes))
+        return transaction
 
     async def controls(self, tx, snapshot, output=False):
         policy = snapshot.policy
@@ -136,7 +155,7 @@ class Pipeline:
         return findings
 
     def facts(self, tx, findings, high_risk=False, memory_quarantined=False):
-        tool = TOOLS.get(tx.resource.name if tx.resource else "")
+        tool = self.tools.get(tx.resource.name if tx.resource else "")
         return {
             "findings": [f.model_dump() for f in findings],
             "high_risk": high_risk,
@@ -249,11 +268,32 @@ class Pipeline:
         reservation = Reservation()
         reconciled = False
         executed = False
+        execution_ticket = None
+        execution_view = None
+        field_labels = {}
+        value_handles = {}
+        public_action_verified = False
         reserved_at = None
         tokens_used = 0
         credits_used = 0
         try:
             control_start = time.perf_counter()
+            if request.public_action:
+                recipe = self.public_actions.get(request.public_action)
+                if (not recipe or request.payload or request.value_references or not tx.resource
+                    or recipe["operation"] != tx.operation or recipe["tool"] != tx.resource.name):
+                    findings.append(Finding(code="PUBLIC_ACTION_PARAMETERS_FORBIDDEN", control="information-flow"))
+                else:
+                    tx.payload = recipe["arguments"].copy()
+                    public_action_verified = True
+            for field, handle in request.value_references.items():
+                if field in tx.payload or not self.values:
+                    findings.append(Finding(code="DATA_REFERENCE_OVERRIDE", control="information-flow"))
+                    continue
+                try:
+                    tx.payload[field], field_labels[field] = await self.values.resolve(principal, handle)
+                except PermissionError:
+                    findings.append(Finding(code="DATA_REFERENCE_NOT_ACCESSIBLE", control="information-flow"))
             findings += schema.inspect(tx)
             raw_size = len(encoded(tx.payload))
             if raw_size > policy.limits.request_bytes:
@@ -271,6 +311,11 @@ class Pipeline:
             except ValueError:
                 findings.append(Finding(code="CANONICALIZATION_INVALID", control="schema"))
             tx.metadata["response_limit"] = policy.limits.response_bytes
+            if tx.effect != Effect.READ or tx.operation == Operation.AGENT_MESSAGE:
+                if self.require_execution_id and not request.execution_id:
+                    findings.append(Finding(code="EXECUTION_ID_REQUIRED", control="replay-protection"))
+                tx.metadata["execution_id"] = request.execution_id or self.executions.logical_id(tx)
+                tx.metadata["execution_arguments"] = tx.payload.copy()
             tx.metadata["network_policy"] = policy.network.model_dump()
             # Lookup is scoped before content is inspected; cross-tenant lookups return no record.
             if tx.operation == Operation.MEMORY_READ and not findings:
@@ -298,10 +343,22 @@ class Pipeline:
                 source_label(tx, "memory" if record else "user"))
             if record and record.data_security:
                 label = DataSecurityLabel.join(label, record.data_security)
+            if field_labels:
+                label = DataSecurityLabel.join(label, *field_labels.values())
+            if public_action_verified:
+                # Only operator-sealed constant arguments bypass coarse exposure. No caller text is included.
+                label = source_label(tx, "system", trust="trusted", classification="public")
             if tx.operation == Operation.MEMORY_WRITE:
                 label = DataSecurityLabel.join(label, source_label(tx, "memory",
                     classification=tx.payload.get("classification", "internal")))
             tx.metadata["data_label"] = label.model_dump(mode="json")
+            tool = self.tools.get(tx.resource.name if tx.resource else "")
+            if tool and tx.operation in {Operation.MCP_TOOL_CALL, Operation.TOOL_CALL, Operation.API_CALL}:
+                tx.payload, tool_findings = input_minimize(tool, tx.payload, {k: field_labels.get(k, label) for k in tx.payload})
+                findings += tool_findings
+                approved_fields = set(tool.output_fields if tool.output_fields is not None else tool.output_schema.get("properties", {}))
+                if request.result_fields is not None and not set(request.result_fields) <= approved_fields:
+                    findings.append(Finding(code="OUTPUT_FIELD_NOT_APPROVED", control="tool-output-sanitizer"))
             tx.metadata["data_flow"] = flow_facts(tx, label, policy)
             intent = await self.workflows.intent(principal, tx.context.workflow.workflow_id)
             tx.metadata["trusted_intent"] = intent.model_dump(mode="json") if intent else None
@@ -311,7 +368,10 @@ class Pipeline:
                     findings.append(Finding(code="DELEGATION_CAPABILITY_DENIED", control="delegation"))
             if tx.operation in {Operation.MCP_TOOL_CALL, Operation.TOOL_CALL}:
                 findings += await self.timed(tx, "mcp_manifest", self.manifests.inspect(
-                    tx, self.adapters.get("mcp"), policy.mcp))
+                    tx, self.tool_adapter(tx), policy.mcp))
+                adapter = self.tool_adapter(tx)
+                if adapter is not None and hasattr(adapter, "preflight"):
+                    findings += await adapter.preflight(tx)
             findings += await self.timed(tx, "deterministic_controls", self.controls(tx, snapshot))
             digest = approval_digest(tx, policy.metadata.revision)
             tx.context.approval_verified = await self.approvals.check(request.approval_token, digest)
@@ -372,6 +432,14 @@ class Pipeline:
                     findings += transformed_findings
                     decision = await self.decide(tx, snapshot, self.facts(tx, findings, high_risk))
                 input_decision = decision.model_copy(deep=True)
+                if decision.decision in PERMITTED and "execution_id" in tx.metadata:
+                    try:
+                        execution_ticket = await self.executions.reserve(tx, policy.metadata.revision)
+                        execution_view = self.executions.public(execution_ticket)
+                    except ReplayRejected as error:
+                        execution_view = self.executions.public(error.record)
+                        findings.append(Finding(code=error.code, control="replay-protection"))
+                        decision = await self.decide(tx, snapshot, self.facts(tx, findings, high_risk))
                 # Consumption is atomic; two concurrent requests cannot execute with one approval.
                 if decision.decision not in PERMITTED:
                     pass
@@ -397,7 +465,14 @@ class Pipeline:
                     if remaining_reservation <= 0.05:
                         findings.append(Finding(code="RESERVATION_EXPIRED", control="budget"))
                         raise RuntimeError("Reservation expired before execution")
+                    # Re-check availability after durable audit/reservation, immediately before dispatch.
+                    final_gate = await self.decide(tx, snapshot, self.facts(tx, findings, high_risk))
+                    if final_gate.decision not in PERMITTED:
+                        decision = final_gate
+                        raise RuntimeError("Final policy gate refused dispatch")
                     upstream_started = time.perf_counter()
+                    if execution_ticket:
+                        await self.executions.start(execution_ticket)
                     with self.tracer.start_as_current_span(
                         "upstream.execute", record_exception=False, set_status_on_exception=False
                     ):
@@ -407,6 +482,12 @@ class Pipeline:
                             min(self.upstream_timeout, remaining_reservation - 0.01),
                         )
                     latencies["upstream"] = time.perf_counter() - upstream_started
+                    if execution_ticket:
+                        if result.tool_error:
+                            await self.executions.fail(execution_ticket, uncertain=True)
+                        else:
+                            await self.executions.complete(execution_ticket)
+                        execution_view = self.executions.public(execution_ticket)
                     self.metrics.stages.labels("upstream").observe(latencies["upstream"])
                     output_started = time.perf_counter()
                     tokens_used = max(tx.budget.estimated_input_tokens, result.input_tokens) + max(
@@ -419,6 +500,13 @@ class Pipeline:
                         max(0, result.output_tokens),
                     )
                     output_findings = schema.inspect_output(tx, result.output)
+                    if result.tool_error:
+                        output_findings.append(Finding(code="MCP_TOOL_REPORTED_ERROR", control="tool-output", action="WARN"))
+                    sanitized = result.output
+                    if tool and tx.operation in {Operation.MCP_TOOL_CALL, Operation.TOOL_CALL, Operation.API_CALL}:
+                        sanitized, sanitizer_findings = output_sanitize(tool, result.output,
+                            policy.limits.response_bytes, request.result_fields)
+                        output_findings += sanitizer_findings
                     if len(encoded(result.output)) > policy.limits.response_bytes:
                         output_findings.append(Finding(code="RESPONSE_TOO_LARGE", control="output-size"))
                     if (
@@ -437,12 +525,17 @@ class Pipeline:
                             if "network" in self.adapters and tx.operation == Operation.API_CALL
                             else self.mcp_output_trust
                         )
-                    out_tx.payload = canonicalize(result.output)
+                        if tool and tool.output_trust:
+                            out_tx.context.source_trust = tool.output_trust
+                    out_tx.payload = canonicalize(sanitized if sanitized is not None else {})
                     output_label = DataSecurityLabel.join(label,
                         source_label(out_tx, "memory" if record else "mcp" if tx.operation in {
                             Operation.MCP_TOOL_CALL, Operation.TOOL_CALL} else "api" if tx.operation == Operation.API_CALL
                             else "agent" if tx.operation == Operation.AGENT_MESSAGE else "system"),
                         derived=tx.operation == Operation.LLM_REQUEST)
+                    if tool:
+                        output_label = DataSecurityLabel.join(output_label, source_label(out_tx,
+                            "mcp", trust=out_tx.context.source_trust, classification=tool.output_classification))
                     self.metrics.tokens.labels("input").inc(max(tx.budget.estimated_input_tokens, result.input_tokens))
                     self.metrics.tokens.labels("output").inc(max(0, result.output_tokens))
                     tx.metadata["data_label"] = output_label.model_dump(mode="json")
@@ -499,6 +592,10 @@ class Pipeline:
                         decision = output_decision
                     else:
                         decision = output_decision
+                        if decision.decision == Decision.QUARANTINE and tool:
+                            await self.audit.append(AuditEvent.from_transaction(tx, decision,
+                                hashlib.sha256(encoded(result.output)).hexdigest(), trace_id, latencies,
+                                phase="tool_quarantine"))
                         if record and decision.decision == Decision.QUARANTINE:
                             await self.memory.quarantine(record)
                     latencies["output_controls"] = time.perf_counter() - output_started
@@ -511,6 +608,12 @@ class Pipeline:
                         "SCHEMA_INVALID" not in decision.reason_codes
                         and "SECRET_DETECTED" not in decision.reason_codes
                     ):
+                        try:
+                            execution_ticket = await self.executions.reserve(tx, policy.metadata.revision)
+                        except ReplayRejected as error:
+                            findings.append(Finding(code=error.code, control="replay-protection"))
+                            execution_view = self.executions.public(error.record)
+                            raise RuntimeError("Quarantine execution replay refused") from error
                         await self.audit.append(
                             AuditEvent.from_transaction(
                                 tx, decision, prompt_hash, trace_id, latencies, phase="quarantine"
@@ -519,10 +622,12 @@ class Pipeline:
                         if not await self.budgets.begin(reservation):
                             findings.append(Finding(code="RESERVATION_EXPIRED", control="budget"))
                             raise RuntimeError("Quarantine reservation expired")
+                        await self.executions.start(execution_ticket)
                         executed = True
                         quarantined = await self.memory.write(
                             tx, policy.memory.max_ttl_seconds, quarantined=True
                         )
+                        await self.executions.complete(execution_ticket)
                         tokens_used, credits_used = tx.budget.estimated_input_tokens, reservation.credits
                         output = {"memory_id": quarantined.memory_id, "quarantined": True}
                 elif record:
@@ -538,6 +643,11 @@ class Pipeline:
                 decision = await self.decide(tx, snapshot, self.facts(tx, findings, high_risk))
                 output = None
         except asyncio.CancelledError:
+            if execution_ticket:
+                try:
+                    await asyncio.shield(self.executions.fail(execution_ticket, uncertain=executed))
+                except Exception:
+                    pass
             if reservation.id:
                 await asyncio.shield(
                     self.budgets.reconcile(
@@ -560,6 +670,24 @@ class Pipeline:
                 except Exception:
                     pass
             tx.budget.consumed_credits = credits_used
+        if execution_ticket:
+            try:
+                await self.executions.fail(execution_ticket, uncertain=executed)
+                execution_view = self.executions.public(execution_ticket)
+            except Exception:
+                findings.append(Finding(code="EXECUTION_STATE_UNAVAILABLE", control="replay-protection"))
+                execution_view = {"execution_id": tx.metadata["execution_id"], "state": "UNCERTAIN"}
+                decision = await self.decide(tx, snapshot, self.facts(tx, findings))
+                output = None
+        if output is not None and decision.decision in PERMITTED and isinstance(output, dict) and self.values:
+            try:
+                for field, value in output.items():
+                    value_handles[field] = await self.values.issue(principal, value,
+                        DataSecurityLabel.model_validate(tx.metadata["data_label"]))
+            except Exception:
+                findings.append(Finding(code="DATA_REFERENCE_STORAGE_UNAVAILABLE", control="information-flow"))
+                decision = await self.decide(tx, snapshot, self.facts(tx, findings))
+                output, value_handles = None, {}
         latencies["total"] = time.perf_counter() - started
         span.set_attribute("security.decision", decision.decision.value)
         span.set_attribute("security.request_id", tx.request_id)
@@ -575,7 +703,7 @@ class Pipeline:
         self.metrics.record(tx, decision, findings, latencies["total"])
         return GatewayResult(
             security=decision, output=output, input_security=input_decision, budget=tx.budget.model_dump(),
-            data_security=tx.metadata.get("data_label", {})
+            data_security=tx.metadata.get("data_label", {}), execution=execution_view, value_handles=value_handles
         )
 
     async def upstream(self, tx, record, policy):
@@ -611,10 +739,14 @@ class Pipeline:
         key = tx.resource.provider if tx.operation == Operation.LLM_REQUEST else "mcp"
         if tx.operation == Operation.API_CALL and "network" in self.adapters:
             key = "network"
-        adapter = self.adapters.get(key)
+        adapter = self.tool_adapter(tx) if key == "mcp" else self.adapters.get(key)
         if adapter is None:
             raise RuntimeError("No configured adapter")
         return await adapter.execute(tx)
+
+    def tool_adapter(self, tx):
+        server = tx.resource.mcp_server if tx.resource else "mock"
+        return self.adapters.get("mcp:" + server, self.adapters.get("mcp") if server == "mock" else None)
 
     async def transport_invalid(self, tx, snapshot, trace_id):
         finding = Finding(code="JSON_INVALID", control="schema")

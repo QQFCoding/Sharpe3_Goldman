@@ -6,7 +6,7 @@ EXTERNAL_SINKS = {"email.send", "network.fetch", "http.post", "github.create_iss
 
 def facts(tx, label: DataSecurityLabel, policy):
     name = tx.resource.name if tx.resource else ""
-    external = name in EXTERNAL_SINKS or tx.effect == "external_side_effect"
+    external = name.split("::")[-1] in EXTERNAL_SINKS or tx.effect == "external_side_effect" or tx.metadata.get("external_sink", False)
     declassified = set()
     for grant in policy.information_flow.declassification:
         if name in grant.sinks and grant.required_scope in tx.principal.scopes:

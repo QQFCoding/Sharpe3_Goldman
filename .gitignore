@@ -14,3 +14,4 @@ models/
 !.env.example
 demo/jwt-private.pem
 auth.json
+config/mcp-credentials.json

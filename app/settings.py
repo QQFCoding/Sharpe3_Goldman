@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     database_url: str | None = None
     llm_url: str = "http://127.0.0.1:8081"
     mcp_url: str = "http://127.0.0.1:8082"
+    mcp_servers_path: Path | None = None
+    mcp_credentials_path: Path = ROOT / "config/mcp-credentials.json"
     mcp_output_trust: Literal["trusted", "untrusted"] | None = None
     ollama_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen3:4b"

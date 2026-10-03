@@ -1,0 +1,4 @@
+[
+  {"id":"trusted-internal","url":"http://trusted-internal:8083","issuer":"http://aicl.local/mcp/internal","resource":"urn:aicl:mcp:trusted-internal"},
+  {"id":"untrusted-external","url":"http://untrusted-external:8084","issuer":"http://aicl.local/mcp/external","resource":"urn:aicl:mcp:untrusted-external"}
+]

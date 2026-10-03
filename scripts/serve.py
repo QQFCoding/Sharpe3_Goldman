@@ -16,6 +16,8 @@ def main():
     opa = install_opa()
     env = os.environ.copy()
     env.setdefault("AICL_OPA_URL", "http://127.0.0.1:8181")
+    env.setdefault("AICL_MCP_SERVERS_PATH", str(ROOT / "config/mcp-servers.json"))
+    subprocess.run([sys.executable, str(ROOT / "scripts/mcp_demo_credentials.py")], check=True)
     flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
     commands = [
         [
@@ -28,7 +30,7 @@ def main():
             str(ROOT / "opa"),
         ]
     ]
-    for module, port in [("demo.mock_llm:app", 8081), ("demo.mock_mcp:app", 8082), ("app.main:app", 8000)]:
+    for module, port in [("demo.mock_llm:app", 8081), ("demo.mock_mcp:app", 8082), ("demo.secure_mcp:app", 8083), ("demo.secure_mcp:app", 8084), ("app.main:app", 8000)]:
         commands.append(
             [
                 sys.executable,
@@ -45,7 +47,10 @@ def main():
     processes = []
     try:
         for command in commands:
-            processes.append(subprocess.Popen(command, cwd=ROOT, env=env, creationflags=flags))
+            child_env = env.copy()
+            if "demo.secure_mcp:app" in command:
+                child_env["AICL_MCP_SERVER_ID"] = "trusted-internal" if "8083" in command else "untrusted-external"
+            processes.append(subprocess.Popen(command, cwd=ROOT, env=child_env, creationflags=flags))
         for _ in range(100):
             if any(p.poll() is not None for p in processes):
                 raise RuntimeError("A service exited. Check ports 8000, 8081, 8082, and 8181.")

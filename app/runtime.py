@@ -1,4 +1,5 @@
 import asyncio
+import json
 from contextlib import AsyncExitStack
 
 import httpx
@@ -7,17 +8,21 @@ from redis.asyncio import Redis
 
 from app.adapters.manifests import ManifestRegistry
 from app.adapters.mcp import MCPAdapter
+from app.adapters.mcp_credentials import ServerCredentials
 from app.adapters.network import NetworkAdapter
 from app.adapters.ollama import OllamaAdapter
 from app.adapters.openai_compatible import OpenAICompatibleAdapter
+from app.adapters.tools import registered_tools
 from app.audit.repository import AuditEvent, AuditRepository
 from app.budget.manager import InMemoryBudgetManager, RedisBudgetManager
 from app.core.auth import ApprovalStore, Authenticator
 from app.core.decision import Decision, DecisionResult, GatewayResult
 from app.core.delegation import DelegationStore
+from app.core.executions import ExecutionStore
 from app.core.jwt_auth import JwtVerifier
 from app.core.pipeline import Pipeline
 from app.core.transaction import Operation, Principal, SecurityTransaction
+from app.core.values import ValueStore
 from app.core.workflows import WorkflowStore
 from app.memory.service import MemoryService
 from app.policy.engine import OpaEngine
@@ -74,7 +79,9 @@ class Runtime:
         await self.memory.initialize()
         self.approvals = ApprovalStore(self.redis)
         self.workflows = WorkflowStore(self.redis)
+        self.values = ValueStore(self.workflows)
         self.delegations = DelegationStore(self.workflows)
+        self.executions = ExecutionStore(self.redis)
         self.budgets = RedisBudgetManager(self.redis) if self.redis else InMemoryBudgetManager()
         self.engine = OpaEngine(self.client, self.settings.opa_url, self.settings.opa_binary)
         semantic = UnavailableProvider()
@@ -114,7 +121,18 @@ class Runtime:
             "trusted" if self.settings.demo_mode else "untrusted"
         )
         self.pipeline.workflows = self.workflows
-        self.pipeline.manifests = ManifestRegistry(ROOT / "config/tool-manifests.json")
+        self.pipeline.executions = self.executions
+        self.pipeline.require_execution_id = not self.settings.demo_mode
+        self.pipeline.values = self.values
+        self.pipeline.tools = registered_tools()
+        self.pipeline.public_actions = json.loads((ROOT / "config/public-actions.json").read_text(encoding="utf-8"))
+        self.pipeline.manifests = ManifestRegistry(ROOT / "config/tool-manifests.json", self.pipeline.tools)
+        if self.settings.mcp_servers_path:
+            servers = json.loads(self.settings.mcp_servers_path.read_text(encoding="utf-8"))
+            credentials = ServerCredentials(ROOT / "config/demo-jwks.json", self.settings.mcp_credentials_path)
+            for server in servers:
+                self.pipeline.adapters["mcp:" + server["id"]] = MCPAdapter(
+                    self.client, server["url"], self.settings.upstream_timeout, server, credentials)
         self.pipeline.alignment = TaskAlignmentGuard(
             self.client if self.settings.alignment_provider == "ollama" else None,
             self.settings.ollama_url, self.settings.ollama_model)

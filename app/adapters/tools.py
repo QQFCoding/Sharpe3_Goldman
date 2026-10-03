@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 
 from app.core.transaction import Effect
 
@@ -10,6 +10,15 @@ class Tool:
     required_scopes: tuple[str, ...]
     schema: dict
     output_schema: dict
+    server_id: str = "mock"
+    remote_name: str | None = None
+    description: str | None = None
+    input_fields: tuple[str, ...] | None = None
+    output_fields: tuple[str, ...] | None = None
+    argument_rules: dict = field(default_factory=dict)
+    output_trust: str | None = None
+    output_classification: str = "public"
+    external_sink: bool = False
 
 
 def obj(properties: dict, required: list[str]) -> dict:
@@ -66,3 +75,16 @@ TOOLS = {
         Tool("network.fetch", Effect.READ, ("network:read",), obj({"url": TEXT}, ["url"]), OUTPUT),
     ]
 }
+
+
+def registered_tools():
+    tools = dict(TOOLS)
+    for server, names, trust in [
+        ("trusted-internal", ["github.search", "github.create_issue", "filesystem.read"], "trusted"),
+        ("untrusted-external", ["github.search", "network.fetch"], "untrusted"),
+    ]:
+        for name in names:
+            alias = server + "::" + name
+            tools[alias] = replace(TOOLS[name], name=alias, server_id=server, remote_name=name,
+                output_trust=trust, external_sink=server == "untrusted-external")
+    return tools

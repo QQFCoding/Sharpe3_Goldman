@@ -7,9 +7,11 @@ dev:
 test:
 	$(PYTHON) scripts/test.py
 demo:
-	$(PYTHON) demo/agent.py
+	$(PYTHON) demo/agent.py --isolated
 	$(PYTHON) scripts/phase2_demo.py
+	$(PYTHON) scripts/phase3_demo.py
 up:
+	$(PYTHON) scripts/mcp_demo_credentials.py
 	docker compose up --build -d
 	docker compose restart opa
 down:
@@ -35,3 +37,11 @@ benchmark-semantic:
 	$(PYTHON) scripts/benchmark_suite.py --mode semantic
 benchmark-concurrency:
 	$(PYTHON) scripts/benchmark_suite.py --mode concurrency
+benchmark-agent-security:
+	$(PYTHON) scripts/agent_security_benchmark.py
+chaos-security:
+	$(PYTHON) scripts/chaos_security.py
+verify-policy:
+	$(PYTHON) scripts/verify_policy.py
+semantic-profile:
+	$(PYTHON) scripts/semantic_profile.py

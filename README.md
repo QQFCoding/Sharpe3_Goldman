@@ -6,6 +6,10 @@ The demo needs no paid API or model download. It uses safe mock services: file, 
 
 Phase 2 adds provenance labels, pre-execution information-flow rules, immutable workflow intent, task-alignment review, attenuated agent delegation, MCP manifest pins, RS256 JWT verification, and a filterable SOC dashboard. See [the hardening report](docs/PHASE2.md) for the security contract, measured results and remaining boundaries, and [the measurement summary](docs/measurements.json) for reproducible numbers.
 
+Phase 3 adds durable execution identities, atomic replay protection, tool input/output projections, protected value receipts, isolated MCP servers with capability credentials, a failure matrix, offline policy properties, and a pinned AgentDyn adapter. See [the Phase 3 report](docs/PHASE3.md) for measured security, utility, model limitations, and reproducible commands.
+
+The real AgentDyn run completed but achieved 0/5 benign tasks; zero successful attacks with that utility does not establish deployment readiness. The measured local alignment reviewer abstained on 66.7% of cases and remains disabled by default.
+
 ## Run locally
 
 Python 3.12+ is required. From this directory:
@@ -35,12 +39,13 @@ For a self-contained check that starts and stops its own local services:
 ## Run with Docker
 
 ```sh
+python scripts/mcp_demo_credentials.py
 docker compose up --build -d
 python demo/agent.py
 docker compose ps
 ```
 
-Compose runs the gateway, OPA, Redis, PostgreSQL, mock LLM, mock MCP, Prometheus, Grafana, OpenTelemetry Collector, and Tempo. Redis and PostgreSQL persist in project-scoped volumes. Grafana automatically provisions the Security dashboard, Prometheus, Tempo, and a restricted PostgreSQL audit data source. After editing Rego files, restart OPA; `make up` does this automatically.
+Compose also runs `trusted-internal` and `untrusted-external` MCP services on an internal network. The credential command generates a local demo signing key if needed and separate 24-hour server/capability tokens in an ignored file. Run it before building; rerun it and restart the gateway when demo tokens expire. Redis uses non-evicting storage and synchronous AOF writes for execution tombstones. Redis and PostgreSQL persist in project-scoped volumes. Grafana, Prometheus, Tempo, the collector, and the restricted PostgreSQL audit source remain provisioned. After editing Rego files, restart OPA; `make up` does this automatically.
 
 | Service | Local address | Demo authentication |
 |---|---|---|
@@ -127,12 +132,13 @@ An admin can issue a five-minute, one-use approval with `POST /admin/approvals`:
     "operation": "mcp_tool_call",
     "resource": {"name": "github.create_issue"},
     "payload": {"title": "Demo", "body": "Safe mock issue"},
-    "workflow": {"workflow_id": "approval-demo"}
+    "workflow": {"workflow_id": "approval-demo"},
+    "execution_id": "approval-demo-action-1"
   }
 }
 ```
 
-Send the exact same operation, including the workflow, with the returned `approval_token`. The digest binds the principal, tenant, agent, operation, effect, normalized arguments, resource, workflow, and policy revision. Atomic consumption prevents concurrent replay. Approvals cannot bypass denied tools, destructive/code-execution restrictions, scopes, semantic blocking, tenant boundaries, or budgets. With the default failure policy, an approved high-risk mutation still blocks if no semantic provider is available.
+Send the exact same operation, including workflow and execution ID, with the returned `approval_token`. The digest binds principal, tenant, agent, operation, effect, normalized arguments, resource, workflow, policy revision and MCP manifest. Atomic approval consumption and separate execution tombstones prevent concurrent replay. Deployment side effects require an explicit `execution_id`; retries must reuse it. Approvals cannot bypass denied tools, destructive/code-execution restrictions, scopes, semantic blocking, tenant boundaries, or budgets. With the default failure policy, an approved high-risk mutation still blocks if no semantic provider is available.
 
 ## Semantic providers
 
@@ -173,7 +179,7 @@ Prometheus exposes requests, exclusive final decisions and triggering controls, 
 
 `python scripts/benchmark.py` writes `artifacts/benchmark.json`. The measurement includes HTTP, OPA, and the safe mock upstream; it is not a real-model latency benchmark. `make test` runs actual Rego tests, Ruff, and Python tests including concurrency tests against the Redis Lua scripts via fakeredis. `python scripts/compose_smoke.py` checks the running Compose stack, PostgreSQL persistence, Redis state, metrics scraping, and Grafana provisioning.
 
-Phase 2 evaluation commands are `make redteam`, `make redteam-semantic`, `make benchmark-fast`, `make benchmark-semantic`, `make benchmark-concurrency`, and `make security-scan`. All attack tools are inert fixtures. `make demo` runs the existing demo and the Phase 2 enforcement examples; `python scripts/grafana_validate.py` executes the provisioned SQL panels, filters, and linked traces against the live stack.
+Evaluation commands include `make redteam`, `make redteam-semantic`, `make benchmark-fast`, `make benchmark-semantic`, `make benchmark-concurrency`, and `make security-scan`. Phase 3 adds `make benchmark-agent-security`, `make chaos-security`, `make verify-policy`, `make task-alignment-eval` and `make semantic-profile`. Attack tools remain inert. `make demo` runs the original scenarios in isolated state plus Phase 2 and Phase 3 enforcement examples; `python scripts/grafana_validate.py` executes the provisioned SQL panels, filters, and linked traces against the live stack.
 
 ## Deployment boundaries
 

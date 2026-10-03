@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import Field
 
-from app.adapters.tools import TOOLS
+from app.adapters.mcp_protocol import validate
 from app.api.dependencies import principal, status_for
 from app.core.transaction import (
     Operation,
@@ -68,8 +68,10 @@ async def chat(body: ChatRequest, request: Request, identity: Identity):
 
 
 class MCPParams(StrictModel):
-    name: str
-    arguments: dict
+    name: str | None = None
+    arguments: dict = Field(default_factory=dict)
+    meta: dict = Field(default_factory=dict, alias="_meta")
+    execution_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
     workflow: WorkflowContext = Field(default_factory=WorkflowContext)
     approval_token: str | None = None
 
@@ -84,6 +86,12 @@ class MCPRequest(StrictModel):
 @router.post("/v1/mcp")
 async def mcp(body: MCPRequest, request: Request, identity: Identity):
     runtime = request.app.state.runtime
+    try:
+        validate(body.model_dump(mode="json", by_alias=True, exclude_none=True), request.headers, legacy=True)
+    except ValueError:
+        result = await runtime.reject("MCP_HEADER_MISMATCH", "mcp-protocol", identity)
+        return JSONResponse({"jsonrpc": "2.0", "id": body.id, "error": {"code": -32020,
+            "message": "MCP_HEADER_MISMATCH"}, "security": result.security.model_dump(mode="json")}, status_code=400)
     if body.method == "tools/list":
         policy = runtime.policies.active.policy
         visible = set(policy.tools.allow + policy.tools.require_approval)
@@ -94,16 +102,18 @@ async def mcp(body: MCPRequest, request: Request, identity: Identity):
                 "tools": [
                     {
                         "name": t.name,
+                        "description": t.description or "Registered " + t.name,
                         "inputSchema": t.schema,
+                        "outputSchema": t.output_schema,
                         "effect": t.effect,
                         "required_scopes": list(t.required_scopes),
                     }
-                    for t in TOOLS.values()
+                    for t in runtime.pipeline.tools.values()
                     if t.name in visible and set(t.required_scopes) <= set(identity.scopes)
                 ]
             },
         }
-    if body.params is None:
+    if body.params is None or body.params.name is None:
         result = await runtime.reject("SCHEMA_INVALID", "schema", identity)
     else:
         result = await runtime.pipeline.execute(
@@ -113,12 +123,15 @@ async def mcp(body: MCPRequest, request: Request, identity: Identity):
                 payload=body.params.arguments,
                 workflow=body.params.workflow,
                 approval_token=body.params.approval_token,
+                execution_id=body.params.execution_id,
             ),
             identity,
         )
-    data = {"jsonrpc": "2.0", "id": body.id, "security": result.security.model_dump(mode="json")}
+    data = {"jsonrpc": "2.0", "id": body.id, "security": result.security.model_dump(mode="json"),
+        "execution": result.execution, "value_handles": result.value_handles}
     if status_for(result.security.decision) == 200:
-        data["result"] = {"structuredContent": result.output}
+        data["result"] = {"structuredContent": result.output,
+            "isError": "MCP_TOOL_REPORTED_ERROR" in result.security.reason_codes}
     else:
         data["error"] = {
             "code": -32001,
@@ -126,3 +139,9 @@ async def mcp(body: MCPRequest, request: Request, identity: Identity):
             "data": result.security.model_dump(mode="json"),
         }
     return JSONResponse(data, status_code=status_for(result.security.decision))
+
+
+@router.get("/v1/executions/{execution_id}")
+async def execution_status(execution_id: str, request: Request, identity: Identity):
+    state = await request.app.state.runtime.executions.get(identity, execution_id)
+    return state or JSONResponse({"error": "EXECUTION_NOT_FOUND"}, status_code=404)

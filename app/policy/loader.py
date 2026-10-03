@@ -189,6 +189,7 @@ class TaskAlignment(StrictModel):
 class McpPolicy(StrictModel):
     manifest_pinning: bool = True
     manifest_change: Literal["WARN", "REQUIRE_APPROVAL", "BLOCK"] = "BLOCK"
+    quarantine_outputs: bool = False
 
 
 class DelegationPolicy(StrictModel):

@@ -28,7 +28,7 @@ def canonicalize(value: Any, depth: int = 0) -> Any:
 
 
 def encoded(value: Any) -> bytes:
-    return json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(",", ":")).encode()
+    return json.dumps(value, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(",", ":")).encode()
 
 
 def transform(payload: Any, findings: list[Finding]) -> tuple[Any, list[dict]]:

@@ -296,6 +296,11 @@
           ],
           "title": "Manifest Change",
           "type": "string"
+        },
+        "quarantine_outputs": {
+          "default": false,
+          "title": "Quarantine Outputs",
+          "type": "boolean"
         }
       },
       "title": "McpPolicy",

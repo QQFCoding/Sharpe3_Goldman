@@ -1,0 +1,7 @@
+{
+  "status-ping": {
+    "operation": "mcp_tool_call",
+    "tool": "network.fetch",
+    "arguments": {"url": "https://example.org/status"}
+  }
+}

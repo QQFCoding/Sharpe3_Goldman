@@ -128,6 +128,10 @@ class OperationRequest(StrictModel):
     payload: dict[str, Any]
     workflow: WorkflowContext = Field(default_factory=WorkflowContext)
     approval_token: str | None = Field(default=None, max_length=256)
+    execution_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
+    result_fields: list[str] | None = Field(default=None, max_length=32)
+    value_references: dict[str, str] = Field(default_factory=dict, max_length=32)
+    public_action: str | None = Field(default=None, max_length=128)
 
 
 def text_leaves(value: Any, path: tuple = ()):

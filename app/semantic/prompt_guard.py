@@ -54,7 +54,8 @@ class PromptGuardProvider:
         if self._inflight is not None and not self._inflight.done():
             raise SemanticUnavailable("Prompt Guard is busy")
         self._inflight = asyncio.create_task(
-            asyncio.to_thread(self._analyze, [t for _, t in text_leaves(transaction.payload)])
+            asyncio.to_thread(self._analyze, [t for path, t in text_leaves(transaction.payload)
+                if list(path) not in transaction.metadata.get("semantic_trusted_paths", [])])
         )
         self._inflight.add_done_callback(lambda task: task.exception() if not task.cancelled() else None)
         try:

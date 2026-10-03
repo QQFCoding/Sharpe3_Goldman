@@ -2,11 +2,13 @@ name: ai-control-layer
 services:
   gateway:
     build: .
+    networks: [default, mcp-isolated]
     environment:
       AICL_DEMO_MODE: "true"
       AICL_OPA_URL: http://opa:8181
       AICL_LLM_URL: http://mock-llm:8081
       AICL_MCP_URL: http://mock-mcp:8082
+      AICL_MCP_SERVERS_PATH: /srv/aicl/config/mcp-servers.docker.json
       AICL_REDIS_URL: redis://redis:6379/0
       AICL_DATABASE_URL: postgresql://aicl:${POSTGRES_PASSWORD:-local-demo-password}@postgres:5432/aicl
       AICL_ADMIN_TOKEN: ${AICL_ADMIN_TOKEN:-demo-admin-token}
@@ -24,6 +26,8 @@ services:
       opa: {condition: service_started}
       mock-llm: {condition: service_started}
       mock-mcp: {condition: service_started}
+      trusted-internal: {condition: service_started}
+      untrusted-external: {condition: service_started}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=4)"]
       interval: 10s
@@ -36,7 +40,7 @@ services:
     volumes: ["./opa:/policies:ro"]
   redis:
     image: redis:7.4-alpine
-    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "always", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
     volumes: ["redis-data:/data"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -73,6 +77,30 @@ services:
   mock-mcp:
     build: .
     command: ["uvicorn", "demo.mock_mcp:app", "--host", "0.0.0.0", "--port", "8082", "--no-access-log"]
+  trusted-internal:
+    build: .
+    environment: {AICL_MCP_SERVER_ID: trusted-internal}
+    command: ["uvicorn", "demo.secure_mcp:app", "--host", "0.0.0.0", "--port", "8083", "--no-access-log"]
+    user: "65532:65532"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
+    networks: [mcp-isolated]
+  untrusted-external:
+    build: .
+    environment: {AICL_MCP_SERVER_ID: untrusted-external}
+    command: ["uvicorn", "demo.secure_mcp:app", "--host", "0.0.0.0", "--port", "8084", "--no-access-log"]
+    user: "65532:65532"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
+    networks: [mcp-isolated]
   prometheus:
     image: prom/prometheus:v3.2.1
     volumes: ["./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
@@ -105,3 +133,5 @@ volumes:
   redis-data:
   postgres-data:
   ollama-models:
+networks:
+  mcp-isolated: {internal: true}

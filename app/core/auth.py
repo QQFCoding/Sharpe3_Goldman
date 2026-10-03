@@ -65,10 +65,11 @@ def approval_digest(tx: SecurityTransaction, revision: str) -> str:
                 "operation": tx.operation,
                 "effect": tx.effect,
                 "resource": tx.resource.model_dump() if tx.resource else None,
-                "payload": tx.payload,
+                "payload": tx.metadata.get("execution_arguments", tx.payload),
                 "workflow": tx.context.workflow.model_dump(),
                 "revision": revision,
                 "manifest_hash": tx.metadata.get("manifest_hash"),
+                "execution_id": tx.metadata.get("requested_execution_id"),
             }
         )
     ).hexdigest()

@@ -143,6 +143,16 @@ forbidden_memory_access if {
 
 final_action := "QUARANTINE" if quarantine else := action
 
+# Tool output stays in the isolated buffer and is discarded; only its digest is audited.
+quarantine if {
+    action == "BLOCK"
+    input.transaction.context.phase == "output"
+    input.transaction.operation in {"tool_call", "mcp_tool_call", "api_call"}
+    object.get(input.policy.mcp, "quarantine_outputs", false)
+    some v in violations
+    v.code in {"PROMPT_INJECTION_PATTERN", "SEMANTIC_HIGH_RISK", "THREAT_SIGNATURE_MATCH", "OUTPUT_SCHEMA_INVALID", "RESPONSE_TOO_LARGE"}
+}
+
 decision := {
     "decision": final_action,
     "reason_codes": sort({v.code | some v in violations}),

@@ -30,6 +30,7 @@ class AuditEvent(StrictModel):
     data_security: dict[str, Any] = Field(default_factory=dict)
     delegation_depth: int = 0
     source_category: str = "direct_user_injection"
+    execution_id: str | None = None
 
     @classmethod
     def from_transaction(
@@ -40,7 +41,7 @@ class AuditEvent(StrictModel):
         name = tx.resource.name if tx.resource else None
         resource = (
             name
-            if name in TOOLS
+            if name in TOOLS or tx.metadata.get("registered_tool_name") == name
             else ("sha256:" + hashlib.sha256(name.encode()).hexdigest() if name else None)
         )
         return cls(
@@ -63,6 +64,7 @@ class AuditEvent(StrictModel):
             data_security=tx.metadata.get("data_label", {}),
             delegation_depth=tx.principal.delegation_depth,
             source_category=tx.metadata.get("source_category", "direct_user_injection"),
+            execution_id=("sha256:" + hashlib.sha256(tx.metadata["execution_id"].encode()).hexdigest()) if "execution_id" in tx.metadata else None,
         )
 
 

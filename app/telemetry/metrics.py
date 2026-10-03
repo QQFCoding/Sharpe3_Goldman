@@ -71,7 +71,7 @@ class Metrics:
         for control in decision.controls:
             self.decisions.labels(decision.decision, control).inc()
         if tx.operation in {"tool_call", "mcp_tool_call", "api_call"}:
-            name = tx.resource.name if tx.resource and tx.resource.name in TOOLS else "unknown"
+            name = tx.resource.name if tx.resource and (tx.resource.name in TOOLS or tx.metadata.get("registered_tool_name") == tx.resource.name) else "unknown"
             self.tools.labels(name, decision.decision).inc()
         if (
             any(f.code == "PROMPT_INJECTION_PATTERN" for f in findings)
