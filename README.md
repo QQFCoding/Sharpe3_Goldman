@@ -10,6 +10,27 @@ Phase 3 adds durable execution identities, atomic replay protection, tool input/
 
 The real AgentDyn run completed but achieved 0/5 benign tasks; zero successful attacks with that utility does not establish deployment readiness. The measured local alignment reviewer abstained on 66.7% of cases and remains disabled by default.
 
+Detection hardening adds bounded decoded-content inspection, structured rules, real-model preprocessing and artifact verification, separate AI/rule/hybrid measurements, disagreement reporting, and a live operator console at **http://127.0.0.1:8000/dashboard**. Set `AICL_SEMANTIC_PROVIDER=deberta` for the installed real model. Run `.\.venv\Scripts\python.exe scripts\self_test.py` for the complete tests and real detector gates. See [the detection report](docs/DETECTION.md) for baseline comparisons, limitations, reference integration and exact commands.
+
+The next hardening iteration adds a 2,688-case corpus, contextual discussion handling, bounded message/field reconstruction, confidence tiers, measured model alternatives and a **Threat Observatory** with authenticated live SSE traces, Security Flags and model diagnostics. Run `.\.venv\Scripts\python.exe scripts\self_test.py --robustness` for both corpora and frozen gates. The [iteration 2 report](docs/DETECTION-ITERATION2.md) compares against the previous completed iteration and records remaining misses, false positives, performance costs and deployment limits.
+
+Iteration 3 adds a 4,102-case suite, native action/data-boundary rules, short encoded
+fragment reconstruction, directive-key AI inspection, reconstructed-secret privacy
+checks, request-level alerts and a guided live demo. See the [current report](docs/DETECTION-ITERATION3.md)
+and [executed plan](docs/DETECTION-ITERATION3-PLAN.md).
+
+With the pinned DeBERTa weights installed, launch the isolated real-model observatory:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\live_demo.py
+```
+
+Open http://127.0.0.1:8010/dashboard, connect with `demo-admin-token`, and choose
+**Run guided demo**. The launcher owns its OPA/gateway processes, keeps state in
+memory, starts no tool/LLM upstreams, and stops its process trees on Ctrl+C. Occupied
+ports are refused without touching existing services; `--port` and `--opa-port`
+select alternatives. The demo token applies only to this loopback demo.
+
 ## Run locally
 
 Python 3.12+ is required. From this directory:

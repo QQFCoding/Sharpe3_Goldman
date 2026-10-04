@@ -1,0 +1,15 @@
+{
+  "repo": "deepset/deberta-v3-base-injection",
+  "revision": "80dda00d0b0d9a03917a7685e2ddbcd28e04dbb1",
+  "license": "mit",
+  "files": {
+    "README.md": "c76f06ef2d98672505bc3e12d11c6981bb299a4ae034599ef9d91e8d87acd867",
+    "added_tokens.json": "dc046d04c9b0ada7ae6f1dc89c465801799acdf0c9a6aab8c15a1b2d5ca4e91f",
+    "config.json": "56dde396fa4c30b1b427f17b153ca59b48eb01a62b4abde99319b7dbc17b76a1",
+    "model.safetensors": "16862b96671d118a79b8d3a1352a552913797f9fc3cc7db2e06a05002abfc084",
+    "special_tokens_map.json": "311de3f4eed9d76a43bf0d71f10e62e086ca65ccce9f15d5da0d2098bf519ecc",
+    "spm.model": "c679fbf93643d19aab7ee10c0b99e460bdbc02fedf34b92b05af343b4af586fd",
+    "tokenizer.json": "a86f883318afa11c8c10466f1bf4efaeb6ded28a52cbe57217a8fa0d0a2a87df",
+    "tokenizer_config.json": "45705cb69567763661139b56f0f1f367dec7a130dfd6dcf86a14fbf174a48d3f"
+  }
+}

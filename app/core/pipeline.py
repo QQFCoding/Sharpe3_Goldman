@@ -7,7 +7,7 @@ from app.adapters.tools import TOOLS
 from app.audit.repository import AuditEvent
 from app.budget.manager import Reservation
 from app.budget.pricing import actual_credits, estimate
-from app.controls import pii, prompt_patterns, schema, secrets
+from app.controls import encoded_content, pii, prompt_patterns, schema, secrets, tool_arguments
 from app.controls.base import canonicalize, encoded, transform
 from app.controls.information_flow import facts as flow_facts
 from app.controls.ssrf import NetworkGuard
@@ -24,6 +24,8 @@ from app.core.transaction import (
     SecurityContext,
     SecurityTransaction,
 )
+from app.detection.report import detection_report
+from app.detection.trace import emit
 from app.semantic.base import SemanticRisk
 from app.semantic.task_alignment import AlignmentRisk
 
@@ -119,6 +121,7 @@ class Pipeline:
         return transaction
 
     async def controls(self, tx, snapshot, output=False):
+        privacy_started=time.perf_counter()
         policy = snapshot.policy
         findings = snapshot.feed.match(tx)
         if (
@@ -131,6 +134,12 @@ class Pipeline:
         if policy.controls.pii.enabled:
             action = policy.controls.pii.output_action if output else policy.controls.pii.input_action
             findings += pii.inspect(tx, action)
+        findings += encoded_content.inspect(tx, policy.controls.secrets.enabled, policy.controls.pii.enabled)
+        emit("privacy",{"finding_codes":[f.code for f in findings],
+            "sensitive_content_present":any(f.control in {"secret-scanner","pii-scanner","decoded-secrets","decoded-privacy","reconstructed-secrets","reconstructed-privacy"} for f in findings)},
+            (time.perf_counter()-privacy_started)*1000)
+        if not output:
+            findings += tool_arguments.inspect(tx)
         if (
             policy.controls.prompt_injection.enabled
             and policy.controls.prompt_injection.deterministic_enabled
@@ -185,18 +194,24 @@ class Pipeline:
     async def semantic_scan(self, tx, snapshot, findings, high_risk):
         config = snapshot.policy.controls.prompt_injection
         thresholds = config.semantic.provider_thresholds.get(getattr(self.semantic, "provider_id", "none"), config.semantic)
+        tx.metadata["ai_detection"] = {"detector": getattr(self.semantic, "provider_id", "none"), "type": "ai",
+            "status": "not_required", "verdict": "not_run", "score": None, "latency_ms": 0,
+            "block_threshold": thresholds.block_threshold, "review_threshold": thresholds.review_threshold,
+            "preprocessing_version": getattr(self.semantic, "preprocessing_version", "provider_defined")}
         if (tx.operation == Operation.MEMORY_WRITE and not snapshot.policy.memory.scan_before_write) or (
             tx.operation == Operation.MEMORY_READ
             and tx.context.phase == "output"
             and not snapshot.policy.memory.scan_after_read
         ):
             return
-        necessary = high_risk or bool(tx.risk.prompt_injection) or config.semantic.always_scan
+        necessary = (high_risk or bool(tx.risk.prompt_injection) or config.semantic.always_scan
+            or (tx.operation == Operation.LLM_REQUEST and getattr(self.semantic, "provider_id", "none") != "none"))
         tx.context.semantic_required = necessary
         if not config.enabled or not config.semantic.enabled or not necessary:
             return
         # Deterministic blocking facts are sufficient. Never send detected credentials to a classifier.
         if any(f.action in {"BLOCK", "QUARANTINE"} for f in findings):
+            tx.metadata["ai_detection"]["status"] = "skipped_deterministic_denial"
             return
         started = time.perf_counter()
         with self.tracer.start_as_current_span(
@@ -212,12 +227,19 @@ class Pipeline:
                 tx.risk.tool_misuse = risk.tool_misuse
                 tx.risk.semantic_status = "ok"
                 score = max(risk.prompt_injection, risk.data_exfiltration, risk.tool_misuse)
+                tx.metadata["ai_detection"].update(status="ok", score=score,
+                    **scan_tx.metadata.get("semantic_details",{}),
+                    model_revision=getattr(self.semantic, "model_revision", "operator_pinned_or_provider_defined"),
+                    verdict="malicious" if score >= thresholds.block_threshold else
+                    "review" if score >= thresholds.review_threshold else "benign")
                 tx.risk.risk_band = ("HIGH_RISK" if score >= thresholds.block_threshold else
                     "UNCERTAIN" if score >= thresholds.review_threshold else "LOW_RISK")
                 self.metrics.scores.labels("prompt_injection").observe(risk.prompt_injection)
                 self.metrics.scores.labels("exfiltration").observe(risk.data_exfiltration)
             except Exception:
                 tx.risk.semantic_status = "unavailable"
+                tx.metadata["ai_detection"].update(status="unavailable", verdict="unknown")
+        tx.metadata["ai_detection"]["latency_ms"] = (time.perf_counter() - started) * 1000
         self.metrics.semantic_scans.labels(tx.risk.semantic_status).inc()
         self.metrics.semantic_providers.labels(getattr(self.semantic, "provider_id", "none"), tx.risk.semantic_status).inc()
         self.metrics.semantic_latency.observe(time.perf_counter() - started)
@@ -305,7 +327,10 @@ class Pipeline:
             try:
                 normalize_started = time.perf_counter()
                 with self.tracer.start_as_current_span("normalize", record_exception=False, set_status_on_exception=False):
-                    tx.payload = canonicalize(tx.payload)
+                    normalized = canonicalize(tx.payload)
+                    tx.metadata["normalization"] = {"version": "NFKC/format-character removal",
+                        "changed": normalized != tx.payload}
+                    tx.payload = normalized
                 latencies["normalize"] = time.perf_counter() - normalize_started
                 self.metrics.stages.labels("normalize").observe(latencies["normalize"])
             except ValueError:
@@ -543,6 +568,8 @@ class Pipeline:
                     if tx.operation in {Operation.MCP_TOOL_CALL, Operation.TOOL_CALL}:
                         out_tx.metadata["source_category"] = "tool_output_injection"
                     out_tx.risk.semantic_status = "not_required"
+                    out_tx.metadata.pop("deterministic_detection", None)
+                    out_tx.metadata.pop("ai_detection", None)
                     output_findings += await self.timed(out_tx, "output_controls", self.controls(out_tx, snapshot, output=True))
                     output_high_risk = high_risk or tx.operation in {
                         Operation.MEMORY_READ,
@@ -561,6 +588,7 @@ class Pipeline:
                         out_tx, snapshot, self.facts(out_tx, output_findings, output_high_risk)
                     )
                     findings += output_findings
+                    tx.metadata["output_detection_report"] = detection_report(out_tx, output_decision, output_findings)
                     if output_findings or out_tx.risk.risk_band != "LOW_RISK":
                         tx.metadata["source_category"] = out_tx.metadata.get("source_category", "direct_user_injection")
                     if output_decision.decision in PERMITTED:
@@ -692,6 +720,10 @@ class Pipeline:
         span.set_attribute("security.decision", decision.decision.value)
         span.set_attribute("security.request_id", tx.request_id)
         span.set_attribute("security.policy_revision", decision.policy_revision)
+        report = detection_report(tx, decision, findings)
+        if "output_detection_report" in tx.metadata:
+            report["output_inspection"] = tx.metadata["output_detection_report"]
+        tx.metadata["detection_report"] = report
         try:
             await self.timed(tx, "audit", self.audit.append(
                 AuditEvent.from_transaction(tx, decision, prompt_hash, trace_id, latencies)
@@ -700,10 +732,12 @@ class Pipeline:
             findings.append(Finding(code="AUDIT_UNAVAILABLE", control="audit"))
             decision = await self.decide(tx, snapshot, self.facts(tx, findings))
             output = None
+            report = detection_report(tx, decision, findings)
         self.metrics.record(tx, decision, findings, latencies["total"])
         return GatewayResult(
             security=decision, output=output, input_security=input_decision, budget=tx.budget.model_dump(),
-            data_security=tx.metadata.get("data_label", {}), execution=execution_view, value_handles=value_handles
+            data_security=tx.metadata.get("data_label", {}), execution=execution_view, value_handles=value_handles,
+            detection_report=report
         )
 
     async def upstream(self, tx, record, policy):

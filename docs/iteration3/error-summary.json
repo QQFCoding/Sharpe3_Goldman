@@ -1,0 +1,115 @@
+{
+  "source_fingerprint": "a98b126c2d0e5ccdf99e87a0d3c2ffa56aba2654aa9a655ac226152e592bd059",
+  "split": "test",
+  "errors": {
+    "ai": {
+      "fp": {
+        "multilingual_security": 4,
+        "benign_cross_field": 1,
+        "ordinary_request": 14,
+        "structured_code": 1
+      },
+      "fn": {
+        "nested_injection": 12,
+        "pii_exfiltration": 12,
+        "staged": 12,
+        "multilingual_override": 42,
+        "cross_argument": 11,
+        "indirect_injection": 11,
+        "cross_tool": 12,
+        "credential_exfiltration": 12,
+        "argument_manipulation": 12,
+        "data_poisoning": 12,
+        "policy_extraction": 10,
+        "fragmented": 11,
+        "novel_paraphrase": 12,
+        "malicious_document": 12,
+        "semantic_exfiltration": 12,
+        "json_value": 9,
+        "approval_bypass": 12,
+        "cross_message": 11,
+        "privilege_escalation": 1,
+        "cross_field": 5,
+        "long_context": 1,
+        "tool_manipulation": 12,
+        "retrieval_poisoning": 1,
+        "html_xml": 2,
+        "padding": 1,
+        "hidden_instructions": 1,
+        "fake_system": 3,
+        "delimiter": 1,
+        "contextual_jailbreak": 1,
+        "prompt_extraction": 1,
+        "instruction_smuggling": 1,
+        "encoded_execution": 1,
+        "direct_override": 1,
+        "task_hijacking": 1,
+        "delayed": 1,
+        "markdown": 1,
+        "native_data_transfer": 101,
+        "json_key": 10,
+        "native_task_override": 89,
+        "tool_redirection": 12,
+        "trust_poisoning": 1
+      }
+    },
+    "rules": {
+      "fp": {
+        "security_documentation": 8,
+        "benign_cross_field": 2,
+        "structured_code": 2
+      },
+      "fn": {
+        "multilingual_override": 104,
+        "nested_injection": 12,
+        "pii_exfiltration": 12,
+        "staged": 12,
+        "indirect_injection": 12,
+        "cross_tool": 12,
+        "argument_manipulation": 12,
+        "data_poisoning": 12,
+        "role_impersonation": 12,
+        "policy_extraction": 12,
+        "multi_turn": 12,
+        "novel_paraphrase": 12,
+        "task_hijacking": 12,
+        "cross_argument": 2,
+        "cross_message": 3,
+        "fake_system": 2,
+        "fragmented": 2,
+        "native_data_transfer": 14,
+        "native_task_override": 104,
+        "cross_field": 4
+      }
+    },
+    "hybrid": {
+      "fp": {
+        "multilingual_security": 4,
+        "security_documentation": 8,
+        "benign_cross_field": 2,
+        "ordinary_request": 14,
+        "structured_code": 2
+      },
+      "fn": {
+        "nested_injection": 12,
+        "pii_exfiltration": 12,
+        "staged": 12,
+        "multilingual_override": 42,
+        "indirect_injection": 11,
+        "cross_tool": 12,
+        "argument_manipulation": 12,
+        "data_poisoning": 12,
+        "policy_extraction": 10,
+        "novel_paraphrase": 12,
+        "cross_argument": 2,
+        "cross_message": 2,
+        "fake_system": 2,
+        "fragmented": 2,
+        "task_hijacking": 1,
+        "native_data_transfer": 14,
+        "native_task_override": 80,
+        "cross_field": 4
+      }
+    }
+  }
+}

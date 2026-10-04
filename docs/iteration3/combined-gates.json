@@ -1,0 +1,10 @@
+{
+  "source_fingerprint": "a98b126c2d0e5ccdf99e87a0d3c2ffa56aba2654aa9a655ac226152e592bd059",
+  "scope": "Fixed robustness bounds applied additionally to complete measured v3; self-test v2 gates remain independently reported.",
+  "gate_failures": [
+    "deterministic.f1=0.7123 violates 0.75",
+    "deterministic.false_negative_rate=0.4392 violates 0.35",
+    "hybrid.f1=0.8109 violates 0.82",
+    "hybrid.false_negative_rate=0.2943 violates 0.22"
+  ]
+}

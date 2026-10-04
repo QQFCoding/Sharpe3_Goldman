@@ -105,6 +105,15 @@ class Finding(StrictModel):
     end: int | None = None
     replacement: str | None = None
     rule_id: str | None = None
+    category: str = "security"
+    severity: str = "high"
+    confidence: float = Field(default=.95, ge=0, le=1, allow_inf_nan=False)
+    detection_type: str = "deterministic"
+    title: str = "Security control triggered"
+    description: str = ""
+    remediation: str = "Review the request and follow the configured security policy."
+    evidence: dict[str, Any] = Field(default_factory=dict)
+    version: str = "1"
 
 
 class SecurityTransaction(StrictModel):
@@ -135,11 +144,17 @@ class OperationRequest(StrictModel):
 
 
 def text_leaves(value: Any, path: tuple = ()):
-    if isinstance(value, str):
-        yield path, value
-    elif isinstance(value, dict):
-        for key, item in value.items():
-            yield from text_leaves(item, (*path, key))
-    elif isinstance(value, list):
-        for index, item in enumerate(value):
-            yield from text_leaves(item, (*path, index))
+    # Iterative and bounded: hostile object depth must not consume Python recursion.
+    stack, visited = [(path, value)], 0
+    while stack:
+        current, item = stack.pop()
+        visited += 1
+        if len(current)>16 or visited>4096 or len(stack)>4096:
+            from app.controls.normalization import InspectionLimit
+            raise InspectionLimit("Inspection structure budget exceeded")
+        if isinstance(item,str):
+            yield current,item
+        elif isinstance(item,dict):
+            stack.extend(reversed([(current+(key,),v) for key,v in item.items()]))
+        elif isinstance(item,list):
+            stack.extend(reversed([(current+(i,),v) for i,v in enumerate(item)]))

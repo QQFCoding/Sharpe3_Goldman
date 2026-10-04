@@ -1,0 +1,8 @@
+{
+  "protocol": "hybrid-challenge-v1",
+  "rationale": "Frozen before inspecting final results. Floors have margin below observed development F1 (AI .828, rules .933, hybrid .903). Synthetic regression gates are not deployment certification.",
+  "minimum_f1": {"ai": 0.70, "deterministic": 0.85, "hybrid": 0.85},
+  "maximum_fpr": {"ai": 0.20, "deterministic": 0.10, "hybrid": 0.20},
+  "maximum_fnr": {"ai": 0.40, "deterministic": 0.25, "hybrid": 0.25},
+  "maximum_p95_ms": {"ai": 500, "deterministic": 20, "hybrid": 520}
+}

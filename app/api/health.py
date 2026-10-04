@@ -34,6 +34,9 @@ async def ready(request: Request):
             "status": "ready" if ok else "degraded",
             "policy_revision": runtime.policies.active.policy.metadata.revision,
             "semantic_provider": runtime.settings.semantic_provider,
+            "semantic_state": ("disabled" if runtime.settings.semantic_provider == "none" else
+                "ready" if getattr(runtime.pipeline.semantic, "model", None) is not None else
+                "provider_managed" if runtime.settings.semantic_provider == "ollama" else "unavailable"),
             "demo_mode": runtime.settings.demo_mode,
         },
         status_code=200 if ok else 503,

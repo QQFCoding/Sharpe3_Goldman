@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-10-04T03:36:30.874940+00:00",
+  "source_fingerprint": "a98b126c2d0e5ccdf99e87a0d3c2ffa56aba2654aa9a655ac226152e592bd059",
+  "transport": "actual loopback TCP HTTP; real DeBERTa/OPA runtime; no route faults",
+  "checks": [
+    {
+      "encoding": "plain fragments",
+      "action": "BLOCK",
+      "ai": "skipped before inference",
+      "content": "withheld from trace and response",
+      "scored_windows": 0
+    },
+    {
+      "encoding": "base64 fragments",
+      "action": "BLOCK",
+      "ai": "skipped before inference",
+      "content": "withheld from trace and response",
+      "scored_windows": 0
+    }
+  ]
+}

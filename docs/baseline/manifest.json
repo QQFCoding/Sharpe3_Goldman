@@ -1,0 +1,4 @@
+{
+  "commit": "ac7d45dc7eeda075054d7cf86dabf5558c8895fa",
+  "purpose": "Frozen offline evaluation only; never loaded by gateway"
+}

@@ -46,7 +46,7 @@ async def run(args):
                 await asyncio.sleep(.05)
             else:
                 raise RuntimeError("Owned OPA failed readiness")
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=ROOT / ".tools", prefix="benchmark-") as directory:
             path = Path(directory)
             policy = yaml.safe_load((ROOT / "config/policy.yaml").read_text())
             policy["budgets"]["per_user"]["requests_per_minute"] = 100000

@@ -1,0 +1,15 @@
+{
+  "requests": 20,
+  "duration_seconds": 4.573704299982637,
+  "throughput_rps": 4.37282314033199,
+  "p50_ms": 222.53659996204078,
+  "p95_ms": 244.5119998883456,
+  "p99_ms": 333.0781999975443,
+  "mode": "semantic",
+  "concurrency": 1,
+  "error_rate": 0.0,
+  "security_denial_rate": 0.0,
+  "non_success_rate": 0.0,
+  "budget_backend": "in-memory lock",
+  "boundary": "ASGI gateway + real OPA HTTP + inert upstream. No external HTTP transport or PostgreSQL. Supply --redis-url for actual Redis contention. Policy is isolated; no running policy is changed."
+}

@@ -1,0 +1,12 @@
+{
+  "model": "protectai/deberta-v3-base-prompt-injection-v2",
+  "revision": "e6535ca4ce3ba852083e75ec585d7c8aeb4be4c5",
+  "files": {
+    "config.json": "05079f4735092040b780d459027afab413faa6eeb66a548571a58832304b60bb",
+    "model.safetensors": "6521cb8d0ac08148c81464899c424e6148fcc62befa371089fa4061d8b6e0424",
+    "tokenizer.json": "f0a66ad0d735d8dca9ecac4ff50fcdef4bb6adbadd2941a926844844d2c2059b",
+    "tokenizer_config.json": "557b3d33d3f41b81ad769244e506549e98a1857d41dd58160aacd4d98d710b5a",
+    "special_tokens_map.json": "9463f61e1b109a8eb4688b829260d7c6b1e6dff04c98ff7269bb89e2b92369b9",
+    "spm.model": "c679fbf93643d19aab7ee10c0b99e460bdbc02fedf34b92b05af343b4af586fd"
+  }
+}

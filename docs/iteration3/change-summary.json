@@ -1,0 +1,36 @@
+{
+  "changed_from_iteration2": [
+    "app/api/observatory.py",
+    "app/controls/context.py",
+    "app/controls/encoded_content.py",
+    "app/controls/normalization.py",
+    "app/controls/prompt_patterns.py",
+    "app/controls/reconstruction.py",
+    "app/core/pipeline.py",
+    "app/dashboard.css",
+    "app/dashboard.html",
+    "app/dashboard.js",
+    "app/detection/inspection.py",
+    "app/detection/trace.py",
+    "app/evaluation/previous_v2.py",
+    "app/semantic/intent_candidate.py",
+    "app/semantic/prompt_guard.py",
+    "scripts/browser_qa.py",
+    "scripts/robustness_eval.py",
+    "scripts/self_test.py",
+    "tests/integration/test_observatory.py",
+    "tests/unit/test_hybrid_detection.py"
+  ],
+  "added_this_iteration": [
+    "app/controls/intent_patterns.py",
+    "app/evaluation/corpus_v3.py",
+    "config/evaluation-seeds-v3.json",
+    "scripts/build_iteration3_seeds.py",
+    "scripts/iteration3_review.py",
+    "scripts/live_demo.py",
+    "scripts/paired_detection_performance.py",
+    "tests/unit/test_corpus_v3.py",
+    "tests/unit/test_iteration3_detection.py"
+  ],
+  "scope": "Compared with credential-free start-of-iteration source archive; earlier uncommitted changes retained"
+}

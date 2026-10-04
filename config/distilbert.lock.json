@@ -1,0 +1,14 @@
+{
+  "repo": "fmops/distilbert-prompt-injection",
+  "revision": "c5da1fefd33c98c447b50dd806fe86aeb9e8c26c",
+  "license": "apache-2.0",
+  "files": {
+    "README.md": "2c5cf2e933ea5d0d67fd983481118509f5110a82c4e7680f15234fb85d7b26b5",
+    "config.json": "f7d1bc31a9a24e41aa6c858d8cffd603edbe8d05245023efb29989661f1c3767",
+    "model.safetensors": "2e4646e1f03c0ced285c67a52353b829ff6d76a1bf35ab5ee0beb19dd4447eef",
+    "special_tokens_map.json": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3",
+    "tokenizer.json": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66",
+    "tokenizer_config.json": "bb75bf4f97f4a69e71313e8f3e55b8387075b369ea2f5c75aae416ace006f2c2",
+    "vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+  }
+}

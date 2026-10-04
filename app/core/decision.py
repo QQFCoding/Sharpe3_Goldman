@@ -38,3 +38,4 @@ class GatewayResult(StrictModel):
     data_security: dict[str, Any] = Field(default_factory=dict)
     execution: dict[str, Any] | None = None
     value_handles: dict[str, str] = Field(default_factory=dict)
+    detection_report: dict[str, Any] = Field(default_factory=dict)

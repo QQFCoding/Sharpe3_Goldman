@@ -1,0 +1,48 @@
+{
+  "boundary": "Genuine loopback TCP/HTTP to two separately instantiated inert MCP services; ephemeral RSA/JWT keys, no running user service/config touched. No production remote server claim.",
+  "checks": [
+    {
+      "server": "trusted-internal",
+      "case": "valid_read",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "server": "trusted-internal",
+      "case": "cross_server_token",
+      "expected": 401,
+      "actual": 401
+    },
+    {
+      "server": "trusted-internal",
+      "case": "missing_token",
+      "expected": 401,
+      "actual": 401
+    },
+    {
+      "server": "untrusted-external",
+      "case": "valid_read",
+      "expected": 200,
+      "actual": 200
+    },
+    {
+      "server": "untrusted-external",
+      "case": "cross_server_token",
+      "expected": 401,
+      "actual": 401
+    },
+    {
+      "server": "untrusted-external",
+      "case": "missing_token",
+      "expected": 401,
+      "actual": 401
+    },
+    {
+      "server": "trusted-internal",
+      "case": "read_scope_cannot_write",
+      "expected": 403,
+      "actual": 403
+    }
+  ],
+  "passed": 7
+}

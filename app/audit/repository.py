@@ -31,6 +31,7 @@ class AuditEvent(StrictModel):
     delegation_depth: int = 0
     source_category: str = "direct_user_injection"
     execution_id: str | None = None
+    detection_report: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
     def from_transaction(
@@ -62,6 +63,7 @@ class AuditEvent(StrictModel):
             effect=tx.effect,
             resource_category=tx.operation.value,
             data_security=tx.metadata.get("data_label", {}),
+            detection_report=tx.metadata.get("detection_report", {}),
             delegation_depth=tx.principal.delegation_depth,
             source_category=tx.metadata.get("source_category", "direct_user_injection"),
             execution_id=("sha256:" + hashlib.sha256(tx.metadata["execution_id"].encode()).hexdigest()) if "execution_id" in tx.metadata else None,

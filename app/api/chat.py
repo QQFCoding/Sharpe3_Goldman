@@ -128,7 +128,8 @@ async def mcp(body: MCPRequest, request: Request, identity: Identity):
             identity,
         )
     data = {"jsonrpc": "2.0", "id": body.id, "security": result.security.model_dump(mode="json"),
-        "execution": result.execution, "value_handles": result.value_handles}
+        "execution": result.execution, "value_handles": result.value_handles,
+        "detection_report": result.detection_report}
     if status_for(result.security.decision) == 200:
         data["result"] = {"structuredContent": result.output,
             "isError": "MCP_TOOL_REPORTED_ERROR" in result.security.reason_codes}

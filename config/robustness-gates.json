@@ -1,0 +1,11 @@
+{
+  "protocol": "adversarial-control-v2",
+  "rationale": "Frozen from development before the final held-out run. This broader synthetic corpus is a separate challenge, not a replacement for unchanged legacy regression gates. The first development AI/rule/hybrid F1 values were .616/.796/.864 and recall .462/.680/.808. Margins accommodate independent held-out families. No production threshold changes.",
+  "minimum_f1": {"ai": 0.55, "deterministic": 0.75, "hybrid": 0.82},
+  "maximum_fpr": {"ai": 0.10, "deterministic": 0.08, "hybrid": 0.13},
+  "maximum_fnr": {"ai": 0.58, "deterministic": 0.35, "hybrid": 0.22},
+  "maximum_p95_ms": {"ai": 3500, "deterministic": 20, "hybrid": 3520},
+  "require_ai_only_correct": true,
+  "require_zero_model_failures": true,
+  "minimum_samples": 2000
+}

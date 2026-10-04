@@ -86,9 +86,9 @@ class Runtime:
         self.engine = OpaEngine(self.client, self.settings.opa_url, self.settings.opa_binary)
         semantic = UnavailableProvider()
         if self.settings.semantic_provider == "prompt_guard":
-            semantic = PromptGuardProvider(self.settings.prompt_guard_path)
+            semantic = PromptGuardProvider(self.settings.prompt_guard_path, self.settings.semantic_cpu_threads)
         elif self.settings.semantic_provider == "deberta":
-            semantic = DebertaProvider(self.settings.deberta_path)
+            semantic = DebertaProvider(self.settings.deberta_path, self.settings.semantic_cpu_threads)
         elif self.settings.semantic_provider == "ollama":
             semantic = OllamaSecurityProvider(
                 self.client, self.settings.ollama_url, self.settings.ollama_model
@@ -137,6 +137,15 @@ class Runtime:
             self.client if self.settings.alignment_provider == "ollama" else None,
             self.settings.ollama_url, self.settings.ollama_model)
         self.metrics.revisions(self.policies.active)
+        if self.settings.semantic_preload and self.settings.semantic_provider in {"deberta", "prompt_guard"}:
+            try:
+                await asyncio.wait_for(semantic.analyze(SecurityTransaction(
+                    principal=Principal(subject="model-warmup", tenant_id="internal"),
+                    operation=Operation.LLM_REQUEST, payload={"text": "Public model warm-up."})), 60)
+            except Exception:
+                # Required scans retain the policy's declared unavailable behavior.
+                # Shielded provider work stays admitted as one worker if startup warm-up times out.
+                pass
         return self
 
     async def close(self):

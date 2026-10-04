@@ -1,4 +1,5 @@
 import json
+import re
 import unicodedata
 from typing import Any, Protocol
 
@@ -13,12 +14,16 @@ def canonicalize(value: Any, depth: int = 0) -> Any:
     if depth > 16:
         raise ValueError("Payload nesting exceeds 16")
     if isinstance(value, str):
+        if re.search(r"[\ud800-\udfff]",value):
+            raise ValueError("Malformed Unicode scalar")
         return "".join(c for c in unicodedata.normalize("NFKC", value) if unicodedata.category(c) != "Cf")
     if isinstance(value, list):
         return [canonicalize(v, depth + 1) for v in value]
     if isinstance(value, dict):
         result = {}
         for k, v in value.items():
+            if not isinstance(k, str):
+                raise ValueError("Object keys must be strings")
             key = canonicalize(k, depth + 1)
             if key in result:
                 raise ValueError("Ambiguous normalized keys")

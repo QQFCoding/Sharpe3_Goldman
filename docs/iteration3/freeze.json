@@ -1,0 +1,7 @@
+{
+  "source_fingerprint": "a98b126c2d0e5ccdf99e87a0d3c2ffa56aba2654aa9a655ac226152e592bd059",
+  "selection": "Pinned production DeBERTa threshold/weights unchanged; Qwen candidate separate",
+  "known_regression": "V2 interim FP grammar used for context refinement",
+  "fresh_primary": "Primary v3 test predictions not used for tuning; candidate predictions already observed",
+  "safety_review": "Known action verbs, clause/polite prefix boundaries and unquoted role delimiters prevent discussion inheritance"
+}

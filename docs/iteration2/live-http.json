@@ -1,0 +1,92 @@
+{
+  "boundary": "Actual authenticated TCP/HTTP SSE, real DeBERTa and OPA; synthetic inputs only, no route fault injection",
+  "checks": [
+    {
+      "check": "real TCP stream disconnect preserves occupied admission",
+      "next_status": 429
+    },
+    {
+      "check": "real progressive SSE and reconnect",
+      "ai_input_received_ms": 5.6893001310527325,
+      "first_window_received_ms": 111.26430006697774,
+      "final_decision": "ALLOW",
+      "events": [
+        {
+          "stage": "received",
+          "received_ms": 3.576100105419755,
+          "emitted_ms": 0.0700999516993761
+        },
+        {
+          "stage": "validation",
+          "received_ms": 4.048200091347098,
+          "emitted_ms": 0.3402000293135643
+        },
+        {
+          "stage": "canonicalization",
+          "received_ms": 4.686300177127123,
+          "emitted_ms": 0.5236000288277864
+        },
+        {
+          "stage": "unicode_normalization",
+          "received_ms": 4.846200114116073,
+          "emitted_ms": 0.7966998964548111
+        },
+        {
+          "stage": "encoding_discovery",
+          "received_ms": 5.024100188165903,
+          "emitted_ms": 0.9798998944461346
+        },
+        {
+          "stage": "privacy",
+          "received_ms": 5.286199972033501,
+          "emitted_ms": 1.267499988898635
+        },
+        {
+          "stage": "deterministic",
+          "received_ms": 5.554200150072575,
+          "emitted_ms": 1.5257999766618013
+        },
+        {
+          "stage": "ai_input",
+          "received_ms": 5.6893001310527325,
+          "emitted_ms": 2.9027999844402075
+        },
+        {
+          "stage": "ai_window",
+          "received_ms": 111.26430006697774,
+          "emitted_ms": 107.75239998474717
+        },
+        {
+          "stage": "ai_score",
+          "received_ms": 111.38819996267557,
+          "emitted_ms": 108.62559988163412
+        },
+        {
+          "stage": "aggregation",
+          "received_ms": 112.09339997731149,
+          "emitted_ms": 110.26580003090203
+        },
+        {
+          "stage": "opa",
+          "received_ms": 169.55510014668107,
+          "emitted_ms": 163.53289992548525
+        },
+        {
+          "stage": "guardrail",
+          "received_ms": 169.67990016564727,
+          "emitted_ms": 164.18469999916852
+        },
+        {
+          "stage": "final",
+          "received_ms": 169.87300012260675,
+          "emitted_ms": 164.40679994411767
+        }
+      ]
+    },
+    {
+      "check": "actual encoded Unicode secret trace withholds codepoints/content and skips AI",
+      "decision": "BLOCK"
+    }
+  ],
+  "passed": 3
+}

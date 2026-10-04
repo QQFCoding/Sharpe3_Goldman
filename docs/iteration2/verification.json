@@ -1,0 +1,10 @@
+{
+  "classifier_evidence_current": true,
+  "measured_model_failures": 0,
+  "documentation_json_valid": true,
+  "portable_snapshot_contains_capability_credentials": false,
+  "local_capability_tokens_in_portable_evidence": 0,
+  "acceptance_status": "failed",
+  "failed_robustness_gates": 7,
+  "owned_test_services_cleaned_up": true
+}

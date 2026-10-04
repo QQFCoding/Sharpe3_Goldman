@@ -1,0 +1,8 @@
+{
+  "original_local_snapshot_sha256": "0866b554bc697b6392fb4c68f9903d1f6723b08461342abd179ee2cdfbd60a37",
+  "portable_snapshot_sha256": "544d17596d33bb4ddb8d6e136c3ae6f37d87a1d33b995394dd7b9264d92dc7cd",
+  "excluded": [
+    "config/mcp-credentials.json"
+  ],
+  "reason": "Portable source evidence excludes live local capability credentials. This file is not used by the offline detectors; all detector/config bytes are unchanged."
+}

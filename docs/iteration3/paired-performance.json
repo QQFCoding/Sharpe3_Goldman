@@ -1,0 +1,46 @@
+{
+  "protocol": "warm alternating 72 legacy test cases, two passes, two CPU threads, trace disabled",
+  "source_fingerprint": "a98b126c2d0e5ccdf99e87a0d3c2ffa56aba2654aa9a655ac226152e592bd059",
+  "evidence_stable": true,
+  "snapshot_sha256": "930a4aad0df6b471c4fdfef165fdc76b5be541fb64316669cc7b96b1752d121c",
+  "measurements": {
+    "previous": {
+      "ai_ms": {
+        "requests": 144,
+        "duration_seconds": 21.400886800838634,
+        "throughput_rps": 6.728693130340612,
+        "p50_ms": 147.97980000730604,
+        "p95_ms": 193.1465999223292,
+        "p99_ms": 211.13849990069866
+      },
+      "rule_ms": {
+        "requests": 144,
+        "duration_seconds": 0.046263099648058414,
+        "throughput_rps": 3112.6319052433714,
+        "p50_ms": 0.3050499362871051,
+        "p95_ms": 0.5181999877095222,
+        "p99_ms": 0.5677998997271061
+      }
+    },
+    "current": {
+      "ai_ms": {
+        "requests": 144,
+        "duration_seconds": 21.82124489848502,
+        "throughput_rps": 6.599073548273933,
+        "p50_ms": 147.8880001232028,
+        "p95_ms": 209.85699980519712,
+        "p99_ms": 226.58500005491078
+      },
+      "rule_ms": {
+        "requests": 144,
+        "duration_seconds": 0.08081619977019727,
+        "throughput_rps": 1781.8209766045338,
+        "p50_ms": 0.5264499923214316,
+        "p95_ms": 0.9790000040084124,
+        "p99_ms": 1.2435000389814377
+      }
+    }
+  },
+  "score_differences": 0,
+  "limitations": "Warm sequential local CPU microbenchmark, not service load or larger-corpus latency. Installed user services may still consume resources."
+}

@@ -1,0 +1,92 @@
+{
+  "method": "Previous combined test confusion counts are sums of measured v2 baseline and separately measured frozen-source fresh test. No scores synthesized; ROC and bulk previous-v3 latency are not inferred.",
+  "previous_source_fingerprint": "f9f1487fe57accef921fb84f2219edef6096512eb98682b5f521378444fa9d38",
+  "previous_snapshot_sha256": "930a4aad0df6b471c4fdfef165fdc76b5be541fb64316669cc7b96b1752d121c",
+  "current_source_fingerprint": "a98b126c2d0e5ccdf99e87a0d3c2ffa56aba2654aa9a655ac226152e592bd059",
+  "matched_fresh_payloads": 471,
+  "previous_combined_test": {
+    "ai": {
+      "tp": 367,
+      "fp": 59,
+      "tn": 445,
+      "fn": 496,
+      "samples": 1367,
+      "precision": 0.8615023474178404,
+      "recall": 0.42526071842410196,
+      "f1": 0.5694336695112491,
+      "false_positive_rate": 0.11706349206349206,
+      "false_negative_rate": 0.574739281575898
+    },
+    "deterministic": {
+      "tp": 314,
+      "fp": 67,
+      "tn": 437,
+      "fn": 549,
+      "samples": 1367,
+      "precision": 0.8241469816272966,
+      "recall": 0.3638470451911935,
+      "f1": 0.5048231511254019,
+      "false_positive_rate": 0.13293650793650794,
+      "false_negative_rate": 0.6361529548088065
+    },
+    "hybrid": {
+      "tp": 469,
+      "fp": 109,
+      "tn": 395,
+      "fn": 394,
+      "samples": 1367,
+      "precision": 0.8114186851211073,
+      "recall": 0.5434530706836617,
+      "f1": 0.6509368494101319,
+      "false_positive_rate": 0.21626984126984128,
+      "false_negative_rate": 0.45654692931633833
+    }
+  },
+  "current_combined_test": {
+    "ai": {
+      "samples": 1367,
+      "tp": 377,
+      "fp": 20,
+      "tn": 484,
+      "fn": 486,
+      "accuracy": 0.6298463789319678,
+      "precision": 0.9496221662468514,
+      "recall": 0.43684820393974505,
+      "f1": 0.5984126984126984,
+      "false_positive_rate": 0.03968253968253968,
+      "false_negative_rate": 0.5631517960602549,
+      "auroc": 0.8569416855193217,
+      "auprc_average_precision": 0.8980322461068566
+    },
+    "deterministic": {
+      "samples": 1367,
+      "tp": 484,
+      "fp": 12,
+      "tn": 492,
+      "fn": 379,
+      "accuracy": 0.7139722019019751,
+      "precision": 0.9758064516129032,
+      "recall": 0.5608342989571263,
+      "f1": 0.7122884473877852,
+      "false_positive_rate": 0.023809523809523808,
+      "false_negative_rate": 0.4391657010428737,
+      "auroc": 0.7687744854604646,
+      "auprc_average_precision": 0.8250478291053562
+    },
+    "hybrid": {
+      "samples": 1367,
+      "tp": 609,
+      "fp": 30,
+      "tn": 474,
+      "fn": 254,
+      "accuracy": 0.7922457937088515,
+      "precision": 0.9530516431924883,
+      "recall": 0.7056778679026651,
+      "f1": 0.8109187749667109,
+      "false_positive_rate": 0.05952380952380952,
+      "false_negative_rate": 0.2943221320973349,
+      "auroc": 0.9014339513325609,
+      "auprc_average_precision": 0.9192607161529559
+    }
+  }
+}

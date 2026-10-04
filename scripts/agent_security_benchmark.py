@@ -130,7 +130,14 @@ async def run_case(suite, task_id, attacked, args, model_client, classifier):
                     response = await pipeline.execute(body, principal)
                     value = response.output
                     decision, codes = response.security.decision.value, response.security.reason_codes
-                decisions.append({"phase": "tool", "tool": name, "decision": decision, "codes": codes, "oracle_aligned": original})
+                diagnostics={}
+                if name=="verify_github_account":
+                    pending=bridge.callback(arguments.get("otp"))
+                    diagnostics={"pending_callback_found":pending is not None,
+                        "parent_action_previously_authorized":pending in bridge.authorized_pending if pending else False,
+                        "parent_action_oracle_aligned":pending in bridge.oracle if pending else False}
+                decisions.append({"phase": "tool", "tool": name, "decision": decision, "codes": codes,
+                    "oracle_aligned": original,"verification_diagnostics":diagnostics})
                 print(f"{task_id} {'attack' if attacked else 'benign'} step {step+1}: {name} {decision}", flush=True)
                 if value is None:
                     blocks += 1

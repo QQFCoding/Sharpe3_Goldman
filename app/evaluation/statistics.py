@@ -36,8 +36,9 @@ def classification(rows, threshold):
         "auprc_average_precision": ap if positives else None}
 
 
-def calibrate(rows):
-    candidates = sorted({.01, .3, .5, .85, .99, *[r["score"] for r in rows]})
+def calibrate(rows, minimum_threshold=.01):
+    candidates = sorted(t for t in {minimum_threshold, .3, .5, .85, .99, 1.0, *[r["score"] for r in rows]}
+        if t >= minimum_threshold)
     measured = [(t, classification(rows, t)) for t in candidates]
     feasible = [x for x in measured if x[1]["false_positive_rate"] <= .1]
     threshold, _ = max(feasible or measured, key=lambda x: (x[1]["f1"], x[1]["recall"], -x[1]["false_positive_rate"], x[0]))

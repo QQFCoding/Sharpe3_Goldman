@@ -1,0 +1,18 @@
+{
+  "browser": "installed Edge, isolated headless context",
+  "source_fingerprint": "a98b126c2d0e5ccdf99e87a0d3c2ffa56aba2654aa9a655ac226152e592bd059",
+  "checks": [
+    "complete 4102-case suite is current and leak/duplicate free",
+    "all: real metric counts and ten-language coverage match measured report",
+    "known_v2: real metric counts and ten-language coverage match measured report",
+    "fresh_v3: real metric counts and ten-language coverage match measured report",
+    "fresh English false-negative filter and sanitized expandable evidence",
+    "diagnostic tables remain contained on narrow layout",
+    "real grouped alerts and expanded evidence visible",
+    "no browser or console errors"
+  ],
+  "passed": 8,
+  "page_errors": [],
+  "console_errors": [],
+  "scope": "actual authenticated server/report data; no response mocking; p95 column is whole measured suite latency"
+}

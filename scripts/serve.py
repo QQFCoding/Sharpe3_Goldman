@@ -51,7 +51,7 @@ def main():
             if "demo.secure_mcp:app" in command:
                 child_env["AICL_MCP_SERVER_ID"] = "trusted-internal" if "8083" in command else "untrusted-external"
             processes.append(subprocess.Popen(command, cwd=ROOT, env=child_env, creationflags=flags))
-        for _ in range(100):
+        for _ in range(700):
             if any(p.poll() is not None for p in processes):
                 raise RuntimeError("A service exited. Check ports 8000, 8081, 8082, and 8181.")
             try:

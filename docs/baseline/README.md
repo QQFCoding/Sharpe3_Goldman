@@ -1,0 +1,3 @@
+# Archived detection baseline
+
+The three Python snapshots come from main repository commit `ac7d45dc7eeda075054d7cf86dabf5558c8895fa`, before this engineering change. They are isolated offline evaluation fixtures, not active gateway components. `app/evaluation/baseline.py` explicitly loads them only for `scripts/hybrid_eval.py --baseline`, adapting the original DeBERTa subclass without adding the new preprocessing. The synthetic corpus, model weights, input format, deployed threshold and metric functions remain shared so the comparison is reproducible. No secondary-repository code or absolute machine path is required.

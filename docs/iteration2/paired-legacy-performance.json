@@ -1,0 +1,41 @@
+{
+  "protocol": "72 identical legacy held-out payloads, alternating provider order, sequential warm CPU inference, two threads, tracing disabled. No classification or threshold changes.",
+  "previous_snapshot_sha256": "0866b554bc697b6392fb4c68f9903d1f6723b08461342abd179ee2cdfbd60a37",
+  "ai": {
+    "previous": {
+      "requests": 72,
+      "duration_seconds": 8.654719300568104,
+      "throughput_rps": 8.319160622028939,
+      "p50_ms": 118.81290003657341,
+      "p95_ms": 132.94080016203225,
+      "p99_ms": 145.90519992634654
+    },
+    "current": {
+      "requests": 72,
+      "duration_seconds": 8.659813601057976,
+      "throughput_rps": 8.31426671715009,
+      "p50_ms": 118.98020002990961,
+      "p95_ms": 129.03750012628734,
+      "p99_ms": 142.21390010789037
+    }
+  },
+  "deterministic": {
+    "previous": {
+      "requests": 72,
+      "duration_seconds": 0.019303000066429377,
+      "throughput_rps": 3729.990144134025,
+      "p50_ms": 0.2524999435991049,
+      "p95_ms": 0.4173999186605215,
+      "p99_ms": 0.7256001699715853
+    },
+    "current": {
+      "requests": 72,
+      "duration_seconds": 0.02170910220593214,
+      "throughput_rps": 3316.581188711046,
+      "p50_ms": 0.28565002139657736,
+      "p95_ms": 0.47830003313720226,
+      "p99_ms": 0.5102001596242189
+    }
+  },
+  "score_mismatches_above_1e-6": 0
+}

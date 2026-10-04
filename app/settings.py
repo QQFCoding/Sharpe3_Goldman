@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     jwt_issuer: str = "http://aicl.local/issuer"
     jwt_audience: str = "ai-control-layer"
     semantic_timeout: float = Field(default=5, gt=0, le=60)
+    semantic_cpu_threads: int = Field(default=2, ge=1, le=16)
+    semantic_preload: bool = True
     upstream_timeout: float = Field(default=15, gt=0, le=120)
     otlp_endpoint: str | None = None
     max_body_bytes: int = 262144

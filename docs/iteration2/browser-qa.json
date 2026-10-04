@@ -1,0 +1,49 @@
+{
+  "browser": "installed Microsoft Edge, isolated headless context",
+  "url": "http://127.0.0.1:8010",
+  "checks": [
+    "navigation has no Evaluation & Tests",
+    "authentication failure displayed",
+    "live lab navigation",
+    "real attack blocked",
+    "actual AI windows rendered",
+    "final OPA event rendered",
+    "finding expands",
+    "quoted benign security explanation allowed",
+    "structured cross-message attack blocked",
+    "long prompt has multiple actual windows",
+    "advanced stage data expands",
+    "real stream shows eight selectable requests",
+    "burst capacity refusals visible",
+    "durable flags load",
+    "flag filter empty state",
+    "flag details expand",
+    "diagnostics navigation",
+    "operational overview navigation",
+    "narrow layout has no horizontal document overflow",
+    "empty input has real final state",
+    "disconnect explains missing final report and exposes reconnect",
+    "reconnect starts a successful new real inspection",
+    "unavailable error has no success verdict",
+    "no uncaught browser errors",
+    "no unexpected browser console errors"
+  ],
+  "passed": 25,
+  "page_errors": [],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+  ],
+  "negative_states": "Explicit route faults for disconnect/503; auth, capacity, detector verdicts and windows use real server",
+  "screenshots": [
+    "artifacts\\iteration2\\browser\\lab-desktop.png",
+    "artifacts\\iteration2\\browser\\lab-mobile.png",
+    "artifacts\\iteration2\\browser\\observatory-desktop.png"
+  ]
+}
