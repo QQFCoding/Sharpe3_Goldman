@@ -4,6 +4,8 @@ An enforcement gateway for agent model calls, tools, MCP, APIs, agent messages a
 
 This repository follows the five-section submission structure:
 
+For a single detailed reading guide covering all five sections, open [PROJECT-OVERVIEW.md](PROJECT-OVERVIEW.md).
+
 | Section | Contents |
 |---|---|
 | [1-solution](1-solution/README.md) | Approach, implemented controls and enforceable policy configuration |
