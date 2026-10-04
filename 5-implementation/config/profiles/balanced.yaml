@@ -1,0 +1,131 @@
+# Balanced profile: enforce mode; hard auth, secret, tenant and network controls remain active.
+apiVersion: aicl/v1
+metadata:
+  revision: judge-balanced-v1
+mode: enforce
+defaults:
+  decision: deny
+  unknown_tool: deny
+  unknown_model: deny
+  semantic_failure: block_high_risk
+models:
+  allowed:
+  - provider: mock
+    model: demo
+  - provider: ollama
+    model: qwen3:4b
+  - provider: ollama
+    model: phi4-mini
+agents:
+  allowed:
+  - demo.echo
+apis:
+  allowed:
+  - network.fetch
+controls:
+  pii:
+    enabled: true
+    input_action: REDACT
+    output_action: REDACT
+  secrets:
+    enabled: true
+    input_action: BLOCK
+    output_action: BLOCK
+  prompt_injection:
+    enabled: true
+    deterministic_enabled: true
+    semantic:
+      enabled: true
+      always_scan: false
+      review_threshold: 0.5
+      block_threshold: 0.85
+      provider_thresholds:
+        deberta:
+          review_threshold: 0.3
+          block_threshold: 0.9999991655349731
+tools:
+  default: deny
+  allow:
+  - github.search
+  - github.read_issue
+  - filesystem.read
+  - network.fetch
+  - trusted-internal::github.search
+  - trusted-internal::filesystem.read
+  - untrusted-external::github.search
+  - untrusted-external::network.fetch
+  require_approval:
+  - github.create_issue
+  - filesystem.write
+  - email.send
+  - trusted-internal::github.create_issue
+  deny:
+  - shell.exec
+  - github.delete_repository
+memory:
+  enforce_tenant_boundary: true
+  scan_before_write: true
+  scan_after_read: true
+  quarantine_injection: true
+  max_ttl_seconds: 86400
+network:
+  block_loopback: true
+  block_private_ips: true
+  block_link_local: true
+  block_reserved: true
+  validate_redirects: true
+  resolve_dns: true
+budgets:
+  per_agent:
+    max_steps: 25
+    max_llm_calls: 20
+    max_tool_calls: 20
+    max_depth: 8
+    max_wall_time_seconds: 120
+    token_limit: 100000
+    credit_limit: 100
+    concurrent_requests: 4
+    reservation_ttl_seconds: 60
+  per_user:
+    requests_per_minute: 60
+limits:
+  request_bytes: 65536
+  response_bytes: 65536
+  max_input_tokens: 16000
+  max_output_tokens: 2048
+threat_intelligence:
+  enabled: true
+  source: threat-feed.yaml
+audit:
+  store_raw_prompts: false
+resource_costs:
+  models:
+    demo:
+      per_1000_input_tokens: 1
+      per_1000_output_tokens: 2
+    qwen3:4b:
+      per_1000_input_tokens: 1
+      per_1000_output_tokens: 2
+  tools:
+    github.search: 1
+    shell.exec: 20
+  default_tool: 1
+information_flow:
+  enabled: true
+  untrusted_to_mutating: REQUIRE_APPROVAL
+  declassification: []
+task_alignment:
+  enabled: true
+  approve_below: 0.6
+  block_below: 0.25
+  minimum_confidence: 0.7
+  uncertain_read: WARN
+mcp:
+  manifest_pinning: true
+  manifest_change: BLOCK
+delegation:
+  capability_attenuation: true
+  max_depth: 4
+  allowed_peers:
+  - demo.echo
+  - demo-child

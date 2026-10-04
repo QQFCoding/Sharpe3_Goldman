@@ -1,0 +1,41 @@
+{
+  "verified_at": "2026-10-04T07:59:13.200779+00:00",
+  "method": "Anonymous HTTPS retrieval of immutable model commit cards and versioned OPA license; no remote execution",
+  "sources": [
+    {
+      "component": "protectai/deberta-v3-base-prompt-injection-v2",
+      "version": "e6535ca4ce3ba852083e75ec585d7c8aeb4be4c5",
+      "url": "https://huggingface.co/protectai/deberta-v3-base-prompt-injection-v2/resolve/e6535ca4ce3ba852083e75ec585d7c8aeb4be4c5/README.md",
+      "license": "apache-2.0",
+      "sha256": "cfe2df8614571d52bca8b2bb6e0d373913921b91418957e8d7272a2b3f18aa0f",
+      "bytes": 6120,
+      "matches_local_card": true
+    },
+    {
+      "component": "deepset/deberta-v3-base-injection",
+      "version": "80dda00d0b0d9a03917a7685e2ddbcd28e04dbb1",
+      "url": "https://huggingface.co/deepset/deberta-v3-base-injection/resolve/80dda00d0b0d9a03917a7685e2ddbcd28e04dbb1/README.md",
+      "license": "mit",
+      "sha256": "c76f06ef2d98672505bc3e12d11c6981bb299a4ae034599ef9d91e8d87acd867",
+      "bytes": 4083,
+      "matches_local_card": true
+    },
+    {
+      "component": "fmops/distilbert-prompt-injection",
+      "version": "c5da1fefd33c98c447b50dd806fe86aeb9e8c26c",
+      "url": "https://huggingface.co/fmops/distilbert-prompt-injection/resolve/c5da1fefd33c98c447b50dd806fe86aeb9e8c26c/README.md",
+      "license": "apache-2.0",
+      "sha256": "2c5cf2e933ea5d0d67fd983481118509f5110a82c4e7680f15234fb85d7b26b5",
+      "bytes": 137,
+      "matches_local_card": true
+    },
+    {
+      "component": "Open Policy Agent",
+      "version": "1.4.2",
+      "url": "https://raw.githubusercontent.com/open-policy-agent/opa/v1.4.2/LICENSE",
+      "license": "Apache-2.0",
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "bytes": 11358
+    }
+  ]
+}

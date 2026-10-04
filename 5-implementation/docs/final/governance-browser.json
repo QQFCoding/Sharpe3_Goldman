@@ -1,0 +1,16 @@
+{
+  "checks": [
+    "authenticated governance navigation and effective policy cards",
+    "control settings rendered as real read-only table",
+    "unknown workflow explicitly shown with actual zero accounting",
+    "scope edits clear stale usage",
+    "successful actual atomic server reload visible",
+    "rejected reload retained active policy and no parser values in DOM",
+    "authenticated bounded NDJSON audit download",
+    "mobile governance no overflow and readable workflow field",
+    "no JavaScript page errors"
+  ],
+  "passed": 9,
+  "page_errors": [],
+  "scope": "Isolated native dashboard HTTP/browser, real OPA and budget backend; semantic provider disabled for governance-only checks. Reload rejection deliberately injected into isolated copied configuration."
+}

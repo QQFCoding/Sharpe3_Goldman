@@ -1,0 +1,7 @@
+{
+  "commit": "5acf3595acf8ff5f73698de43dd58782547fe2e9",
+  "source_archive": "docs/final/iteration3-source.zip",
+  "archive_sha256": "4f83e8fbdde8e86e82a37991be5edb62543e8e43473363eebc1db55384db9240",
+  "files": 200,
+  "scope": "Committed iteration3 HEAD; excludes credentials/private keys; before final edits"
+}

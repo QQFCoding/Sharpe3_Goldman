@@ -1,0 +1,25 @@
+flowchart TD
+    A[Agent / application / orchestration framework] --> I[HTTP adapters: chat, transactions, MCP]
+    I --> G[Authenticate, validate and normalize]
+    C[Policy YAML, threat feed and tool registry] --> G
+    G --> D[Deterministic controls: privacy, injection, permissions, network, provenance]
+    D --> B[Atomic budget reservation]
+    B --> P1[OPA precheck]
+    P1 -->|Permitted or review eligible| S[Optional semantic and task-alignment signals]
+    P1 -->|Denied| X[Explainable denial; no dispatch]
+    S --> P2[OPA final authorization]
+    C --> P2
+    P2 -->|Approval required / denied / terminated| X
+    P2 -->|ALLOW / REDACT / WARN| E[Apply transformations, consume approval, persist authorization, mark execution started]
+    E --> U[Registered model / MCP tool / API / memory / agent adapter]
+    U --> O[Buffer and inspect output; apply output policy]
+    O --> R[Reconcile usage, persist final audit and return permitted output]
+    B <--> K[(Redis: budgets, approvals, execution state)]
+    E <--> K
+    E --> Q[(PostgreSQL audit)]
+    R --> Q
+    D -.-> T[Prometheus metrics and OpenTelemetry traces]
+    S -.-> T
+    R -.-> T
+    T --> UI[Native dashboard / Grafana / Tempo]
+    Q --> UI

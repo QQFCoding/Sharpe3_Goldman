@@ -15,3 +15,11 @@ models/
 demo/jwt-private.pem
 auth.json
 config/mcp-credentials.json
+.streamlit/secrets.toml
+cloud/.streamlit/secrets.toml
+
+# Runnable project lives under the submission's implementation section.
+5-implementation/demo/jwt-private.pem
+5-implementation/config/mcp-credentials.json
+5-implementation/.streamlit/secrets.toml
+5-implementation/cloud/.streamlit/secrets.toml
